@@ -5,6 +5,8 @@ cd /d "%~dp0"
 
 set "PY=C:\Users\ynwas\.workbuddy\binaries\python\versions\3.13.12\python.exe"
 if not exist "%PY%" set "PY=python"
+set "GHCLI=%LOCALAPPDATA%\GitHubDesktop\bin\github.bat"
+set "GHAPP=%LOCALAPPDATA%\GitHubDesktop\GitHubDesktop.exe"
 
 echo.
 echo  ============================================================
@@ -65,11 +67,16 @@ exit /b 1
 
 :pushfailed
 echo.
-echo  Push failed - most likely a one-time GitHub login is needed,
-echo  or the network is blocked.
+echo  Push failed - a one-time GitHub login is needed, or the
+echo  network is blocked.
 echo.
-echo  Fallback: open GitHub Desktop, select this repository,
-echo  and click "Push origin" there.
+echo  Opening GitHub Desktop for you - click "Push origin" there.
+echo.
+if exist "%GHCLI%" (
+    call "%GHCLI%" open "%CD%"
+) else (
+    start "" "%GHAPP%" "%CD%"
+)
 echo.
 pause
 exit /b 1
