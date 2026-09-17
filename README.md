@@ -5,7 +5,9 @@
 
 - **数据源**：Google Trends Trending Now，地区 US
 - **技术栈**：Python（仅标准库，零第三方依赖）· DeepSeek（LLM，可选增强）· 原生 HTML/JS + ECharts
-- **在线演示**（只读快照）：<https://us-trend-pulse.app.workbuddy.host/>
+- **在线演示**（只读快照）：
+  - 云托管：<https://us-trend-pulse.app.workbuddy.host/>
+  - GitHub Pages：<https://tomstones26.github.io/search-trend-insight/>
 
 ## 效果预览
 
@@ -106,9 +108,14 @@ python tests/verify_static.py               # ③ 无头浏览器逐页验证（
 仓库里的 `dist/` 就是一份可直接部署的产物，`.github/workflows/pages.yml` 已经配好
 推到 `main` 即自动发布到 GitHub Pages（仓库设置里把 Pages 的源选成 **GitHub Actions** 即可）。
 
+要更新线上快照，**双击 `sync-online.bat`** 就行：它自动完成「重新导出 `dist/` → 提交 → 推送」，
+推送后 GitHub Pages 会自己重新部署（约 1 分钟）。
+
 ### 已发布的线上链接
 
 ### https://us-trend-pulse.app.workbuddy.host/
+
+### https://tomstones26.github.io/search-trend-insight/
 
 实测确认：**线上是发布时的独立拷贝，不是从本地 `dist/` 实时读取的。**
 所以在本机看到新数据 ≠ 线上也是新数据 —— 两者会各自独立。
@@ -121,6 +128,9 @@ python src/scheduler.py --once       # ② 采集一次（或直接在首页点�
 python export_static.py              # ③ 重新导出 dist/
 # ④ 再把 dist/ 重新发布一次（重新发布之前，线上仍是旧快照）
 ```
+
+`sync-online.bat` 把 ③ 和「推送」打包成一次双击：GitHub Pages 这条会在推送后
+**自动完成 ④**；workbuddy.host 那条则还需要在托管侧重新发布一次。
 
 判断线上是不是旧的：对比 `dist/api/dashboard.json` 与
 `https://us-trend-pulse.app.workbuddy.host/api/dashboard.json` 的哈希是否一致。
