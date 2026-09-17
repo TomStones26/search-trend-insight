@@ -1,0 +1,17 @@
+# 统一行尾，避免跨平台 clone 后脚本失效
+# （Windows 上 core.autocrlf=true 时，.bat 若无此声明会被存成 LF，
+#   别人 clone 下来双击可能报错）
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+*.sh   text eol=lf
+
+# 二进制资源：不做任何行尾转换
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+
+# 第三方压缩库与数据快照：行级 diff 无意义
+*.min.js  -diff
+*.jsonl   -diff
