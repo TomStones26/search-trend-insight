@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>分析过程 · DataPulse</title>
+<link rel="stylesheet" href="/assets/theme.css">
+</head>
+<body>
+
+<div class="wrap-narrow">
+
+  <div class="page-head mt-l">
+    <span class="kicker">Step 2 / 4 · 分析过程</span>
+    <h1>正在跑这条流水线</h1>
+    <div class="sub">六个阶段依次执行，进度实时落盘。刷新页面不会丢进度。</div>
+  </div>
+
+  <!-- 需求回显 -->
+  <div class="card mt">
+    <div class="spread">
+      <div style="flex:1;min-width:0">
+        <label class="f">你的需求</label>
+        <div id="reqText" style="font-size:14.5px;font-weight:600">—</div>
+        <div class="muted mt" id="runMeta"></div>
+      </div>
+      <div style="text-align:right">
+        <div id="stateChip"></div>
+        <div class="muted mt" style="margin-top:8px" id="sourceChip"></div>
+      </div>
+    </div>
+    <div class="bar mt"><i id="pbar"></i></div>
+    <div class="spread" style="margin-top:7px">
+      <span class="muted" id="pText">准备中…</span>
+      <span class="muted"><b id="pPct">0</b>%</span>
+    </div>
+  </div>
+
+  <!-- Plan -->
+  <div class="card mt" id="planCard">
+    <div class="empty">等待 AI 解析需求…</div>
+  </div>
+
+  <!-- 步骤 -->
+  <div class="grid g2 mt">
+    <div class="card">
+      <h2>执行阶段</h2>
+      <div class="steps" id="steps"></div>
+    </div>
+    <div class="card">
+      <h2>运行日志</h2>
+      <div class="logs" id="logs"></div>
+    </div>
+  </div>
+
+  <!-- 结论 -->
+  <div class="card mt" id="findingCard" style="display:none">
+    <div class="spread" style="margin-bottom:12px">
+      <h2 style="margin:0">分析结论</h2>
+      <span class="muted">每条结论都能追溯到具体图表或热点</span>
+    </div>
+    <div id="findings"></div>
+  </div>
+
+  <!-- 数据质检 -->
+  <div class="card mt" id="qualityCard" style="display:none">
+    <h2>数据质检</h2>
+    <div id="quality"></div>
+  </div>
+
+  <!-- 下一步 -->
+  <div class="card mt" id="nextCard" style="display:none">
+    <div class="spread">
+      <div>
+        <h2 style="margin:0 0 4px">分析完成</h2>
+        <div class="sub">看板看全局与交互筛选，报告按你的需求组织成文。</div>
+      </div>
+      <div class="row">
+        <button class="btn" id="btnAgain">改需求重跑</button>
+        <a class="btn" href="/report" id="btnReportLink">查看报告</a>
+        <a class="btn primary" href="/dashboard" id="btnDashLink">打开看板 →</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- 失败 -->
+  <div class="card mt" id="failCard" style="display:none">
+    <h2 style="color:var(--rose)">分析失败</h2>
+    <p class="sub" id="failMsg"></p>
+    <a class="btn primary" href="/">回到主页</a>
+  </div>
+
+  <div class="foot">
+    阶段之间只通过文件通信（plan.json → 快照 → 质量报告 → 分析结果 → 报告），
+    因此任一阶段都可以单独重跑，也可以中断后恢复。<br>
+    所有数值由脚本计算，LLM 只参与「理解需求」和「解释结论」，不参与数字生成。
+  </div>
+</div>
+
+<script src="/assets/common.js"></script>
+<script>
+mountNav('analysis');
+
+let lastState = null;
+let analysisLoaded = false;
+
+function setProgress(st) {
+  $('#pbar').style.width = (st.progress || 0) + '%';
+  $('#pPct').textContent = st.progress || 0;
+  const cur = (st.steps || []).find(s => s.state === 'running');
+  $('#pText').textContent = st.state === 'running'
+    ? (cur ? '正在执行：' + cur.label : '准备中…')
+    : st.state === 'done' ? '全部完成' : st.state === 'failed' ? '执行中断' : '等待开始';
+  $('#stateChip').innerHTML = stateChip(st.state);
+}
+
+function onStatus(st) {
+  lastState = st;
+  $('#reqText').textContent = st.requirement || '（默认需求）';
+  $('#runMeta').textContent = '任务 ' + (st.run_id || '—')
+    + (st.started_at ? ' · 开始于 ' + tsShort(st.started_at) : '');
+  setProgress(st);
+  renderSteps($('#steps'), st.steps || []);
+  renderLogs($('#logs'), st.logs || []);
+  renderPlan($('#planCard'), st.plan);
+
+  if (st.source) {
+    $('#sourceChip').innerHTML = st.source === 'live'
+      ? '<span class="chip mint">实时采集</span>'
+      : '<span class="chip amber">缓存数据</span>';
+  }
+  if (st.quality) {
+    $('#qualityCard').style.display = '';
+    renderQuality(st.quality);
+  }
+
+  if (st.state === 'done') {
+    $('#nextCard').style.display = '';
+    if (!analysisLoaded) { analysisLoaded = true; loadAnalysis(); }
+  }
+  if (st.state === 'failed') {
+    $('#failCard').style.display = '';
+    $('#failMsg').textContent = st.error || '未知错误';
+  }
+}
+
+function renderQuality(q) {
+  const color = q.score >= 0.9 ? 'var(--mint)' : q.score >= 0.7 ? 'var(--amber)' : 'var(--rose)';
+  $('#quality').innerHTML = `
+    <div class="row" style="gap:22px;margin-bottom:12px">
+      <div><label class="f">综合质量分</label>
+        <div style="font-size:26px;font-weight:700;color:${color}">${q.score}</div></div>
+      <div><label class="f">行数</label>
+        <div style="font-size:26px;font-weight:700">${q.row_count}</div></div>
+      <div><label class="f">历史期数</label>
+        <div style="font-size:26px;font-weight:700">${q.snapshot_count}</div></div>
+    </div>
+    <table><thead><tr><th>检查项</th><th>结果</th><th>说明</th></tr></thead><tbody>
+    ${q.checks.map(c => {
+      const cls = c.state === 'pass' ? 'mint' : c.state === 'warn' ? 'amber' : 'rose';
+      const txt = c.state === 'pass' ? '通过' : c.state === 'warn' ? '注意' : '不通过';
+      return `<tr><td>${esc(c.name)}</td>
+        <td><span class="chip ${cls}">${txt}</span></td>
+        <td class="muted">${esc(c.detail)}</td></tr>`;
+    }).join('')}
+    </tbody></table>`;
+}
+
+async function loadAnalysis() {
+  try {
+    const a = await api('/api/analysis');
+    $('#findingCard').style.display = '';
+    renderFindings($('#findings'), a.findings);
+  } catch (e) { /* 尚无结果 */ }
+}
+
+$('#btnAgain').onclick = () => { location.href = '/'; };
+
+/* 首次加载：没有运行中的任务但有历史结果时，直接展示 */
+(async function init() {
+  try {
+    const st = await api('/api/status');
+    onStatus(st);
+    if (st.state === 'running') {
+      pollStatus(onStatus, 1000);
+    } else if (st.state !== 'done' && st.state !== 'failed') {
+      $('#pText').textContent = '还没有分析任务';
+      $('#planCard').innerHTML =
+        '<div class="empty">还没有分析任务。<a href="/">回主页提一个需求</a> 就会开始。</div>';
+    }
+  } catch (e) {
+    $('#pText').textContent = '无法连接本地服务';
+    $('#planCard').innerHTML =
+      '<div class="empty">读不到状态文件。请确认本地服务已启动：<code>python server.py</code></div>';
+  }
+})();
+</script>
+</body>
+</html>

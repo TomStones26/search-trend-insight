@@ -1,0 +1,671 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>可视化看板 · DataPulse</title>
+<link rel="stylesheet" href="assets/theme.css">
+<script src="assets/echarts.min.js"></script>
+</head>
+<body>
+
+<div class="wrap">
+
+  <div class="page-head mt-l">
+    <span class="kicker">Step 3 / 4 · 可视化看板</span>
+    <h1>美国实时搜索热点看板</h1>
+    <div class="sub">Google Trends · Trending Now · US &nbsp;|&nbsp; 下方筛选会实时重算全部图表</div>
+  </div>
+
+  <!-- ===== 筛选器 ===== -->
+  <div class="card tight">
+    <div class="grid g4" style="gap:12px">
+      <div>
+        <label class="f">类别（可多选）</label>
+        <select id="fCat" multiple size="1" style="height:42px"></select>
+      </div>
+      <div>
+        <label class="f">关键词（热点名或关联搜索词）</label>
+        <input type="text" id="fKw" placeholder="如 pokemon / outage">
+      </div>
+      <div>
+        <label class="f">最小增长率 %</label>
+        <input type="text" id="fGrowth" placeholder="如 500">
+      </div>
+      <div>
+        <label class="f">最小搜索量</label>
+        <input type="text" id="fVol" placeholder="如 5000">
+      </div>
+    </div>
+    <div class="spread mt">
+      <div class="row" style="gap:8px" id="filterChips"></div>
+      <div class="row">
+        <button class="btn ghost" id="btnReset">重置筛选</button>
+        <button class="btn" id="btnRefresh">重新读取数据</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== KPI ===== -->
+  <div class="grid g6 mt" id="kpis"></div>
+
+  <!-- ===== 榜单 ===== -->
+  <div class="grid g2 mt">
+    <div class="card">
+      <h2>搜索量 Top 15</h2>
+      <div class="muted" style="margin-bottom:8px">谁当下被搜得最多</div>
+      <div id="c_vol" class="chart" style="height:440px"></div>
+    </div>
+    <div class="card">
+      <h2>增长最快 Top 15</h2>
+      <div class="muted" style="margin-bottom:8px">
+        谁在快速升温。<b>搜索量排名 ≠ 增长速度排名</b>，两张图必须分开看</div>
+      <div id="c_grow" class="chart" style="height:440px"></div>
+    </div>
+  </div>
+
+  <!-- ===== 四象限 ===== -->
+  <div class="card mt">
+    <div class="spread">
+      <h2 style="margin:0">搜索量 × 增长率 四象限</h2>
+      <span class="chip pink">核心图</span>
+    </div>
+    <div class="muted" style="margin:6px 0 10px">
+      右上 <b>爆发型</b>＝量级与增速同时在线，最值得跟 ｜ 左上 <b>成熟型</b>＝大盘热点但已趋平缓 ｜
+      右下 <b>潜在型</b>＝量小但增速极高，是下一阶段候选 ｜ 左下 <b>长尾型</b>。
+      虚线为两个维度的中位数切分线，气泡大小＝关联搜索词数量。
+    </div>
+    <div id="c_quad" class="chart" style="height:500px"></div>
+  </div>
+
+  <!-- ===== 类别结构 ===== -->
+  <div class="grid g2 mt">
+    <div class="card">
+      <h2>类别结构（按搜索量）</h2>
+      <div id="c_catvol" class="chart" style="height:360px"></div>
+    </div>
+    <div class="card">
+      <h2>类别结构（按热点条数）</h2>
+      <div class="muted" style="margin-bottom:8px">条数多 ≠ 关注量高，两张图经常不一致</div>
+      <div id="c_catcnt" class="chart" style="height:360px"></div>
+    </div>
+  </div>
+
+  <!-- ===== Momentum ===== -->
+  <div class="grid g2 mt">
+    <div class="card">
+      <h2>势能榜 Momentum Top 10</h2>
+      <div class="muted" style="margin-bottom:8px">
+        自建指标：log(搜索量+1) × 增长率，衡量"当前势能"。非 Google 官方指标</div>
+      <div id="c_mom" class="chart" style="height:380px"></div>
+    </div>
+    <div class="card">
+      <h2>品牌热度 Brand Heat</h2>
+      <div class="muted" style="margin-bottom:8px">
+        衡量的<b>是搜索关注度，不是销量</b>。与销售数据联动前只能作线索</div>
+      <div id="c_brand" class="chart" style="height:380px"></div>
+    </div>
+  </div>
+
+  <!-- ===== 关联词网络 ===== -->
+  <div class="card mt">
+    <h2>关联搜索词网络</h2>
+    <div class="muted" style="margin-bottom:8px">
+      中心节点是搜索量 Top 8 的热点，外圈是它们的细分搜索词。
+      这张图用来回答"用户为什么突然搜这个东西"</div>
+    <div id="c_net" class="chart" style="height:520px"></div>
+  </div>
+
+  <!-- ===== 新兴信号 ===== -->
+  <div class="card mt">
+    <div class="spread" style="margin-bottom:10px">
+      <h2 style="margin:0">新兴信号</h2>
+      <span class="muted">增长率 ≥ 500% 且搜索量 ≥ 5,000 —— 读作"正在起量"，不是"已经到顶"</span>
+    </div>
+    <div id="tblEmerge"></div>
+  </div>
+
+  <!-- ===== 生命周期 ===== -->
+  <div class="card mt" id="lifeCard">
+    <h2>热点生命周期</h2>
+    <div id="lifeBody"></div>
+  </div>
+
+  <!-- ===== 明细表 ===== -->
+  <div class="card mt">
+    <div class="spread" style="margin-bottom:10px">
+      <h2 style="margin:0">全部热点明细</h2>
+      <span class="muted" id="tblCount"></span>
+    </div>
+    <div class="scroll"><table id="tblAll"></table></div>
+  </div>
+
+  <div class="foot">
+    <b>口径声明</b>｜搜索量与增长率均为 Google 提供的离散区间桶值，非精确值；
+    类别与品牌由本地词典（config/taxonomy.json）规则标注，源站不提供这两个字段；
+    "估算搜索量合计"只能读作量级参考。<br>
+    <b>生命周期</b>｜duration / persistence 由历史快照累积计算，期数不足时不可用。
+    「连续在榜」的单位是<b>采集批次</b>，不是小时——只有把采集固定为等间隔（建议每小时 1 次）时，
+    它才等价于「持续小时数」；手动零散点击产生的快照会让这个数偏大。
+  </div>
+</div>
+
+<script src="assets/common.js"></script>
+<script>
+mountNav('dashboard');
+
+let DATA = null;          // {snapshot_time, geo, window_hours, trends:[...]}
+let FILTER = { cats: [], kw: '', growth: null, vol: null };
+let prefill = null;       // 来自本次需求的范围
+
+/* ---------------- 工具 ---------------- */
+const med = xs => {
+  xs = xs.filter(x => x !== null && x !== undefined && !isNaN(x)).sort((a, b) => a - b);
+  if (!xs.length) return 0;
+  const n = xs.length;
+  return n % 2 ? xs[(n - 1) / 2] : (xs[n / 2 - 1] + xs[n / 2]) / 2;
+};
+const momentum = t => Math.log10((t.search_volume || 0) + 1) * (t.growth_rate || 0);
+
+/* ---------------- 加载 ---------------- */
+async function load() {
+  try {
+    DATA = await api('/api/dataset');
+  } catch (e) {
+    document.querySelector('#kpis').innerHTML =
+      '<div class="empty" style="grid-column:1/-1">' +
+      '读不到数据集。请先回<a href="index.html">主页</a>点一次「更新数据」，或确认本地服务已启动。</div>';
+    return;
+  }
+  try {
+    const a = await api('/api/analysis');
+    if (a && a.plan) prefill = a.plan;
+  } catch (e) { /* 没有本次需求 */ }
+
+  const cats = Array.from(new Set(DATA.trends.map(t => t.category)))
+    .sort((a, b) => catLabel(a).localeCompare(catLabel(b), 'zh'));
+  $('#fCat').innerHTML = cats.map(c =>
+    `<option value="${esc(c)}">${esc(catLabel(c))}</option>`).join('');
+
+  if (prefill && prefill.filters) applyPrefill(prefill);
+  render();
+}
+
+function applyPrefill(plan) {
+  const f = plan.filters || {};
+  (f.categories || []).forEach(c => {
+    const op = Array.from($('#fCat').options).find(o => o.value === c);
+    if (op) op.selected = true;
+  });
+  if (f.min_growth) $('#fGrowth').value = f.min_growth;
+  if (f.min_volume) $('#fVol').value = f.min_volume;
+  if (f.keyword) $('#fKw').value = f.keyword;
+  toast('已按本次需求「' + clip(plan.raw_input || '', 18) + '」预填筛选', 'info');
+}
+
+function readFilter() {
+  FILTER.cats = Array.from($('#fCat').selectedOptions).map(o => o.value);
+  FILTER.kw = $('#fKw').value.trim().toLowerCase();
+  FILTER.growth = parseFloat($('#fGrowth').value) || null;
+  FILTER.vol = parseFloat($('#fVol').value) || null;
+  const chips = [];
+  if (FILTER.cats.length) chips.push(['范围', FILTER.cats.map(catLabel).join('、')]);
+  if (FILTER.kw) chips.push(['关键词', FILTER.kw]);
+  if (FILTER.growth) chips.push(['增长率 ≥', FILTER.growth + '%']);
+  if (FILTER.vol) chips.push(['搜索量 ≥', fmtInt(FILTER.vol)]);
+  $('#filterChips').innerHTML = chips.length
+    ? chips.map(([k, v]) => `<span class="chip sky">${esc(k)}：${esc(v)}</span>`).join('')
+      + `<span class="chip gray">命中 ${filtered().length} / ${DATA.trends.length} 条</span>`
+    : `<span class="chip gray">未筛选 · 全量 ${DATA.trends.length} 条</span>`;
+}
+
+function filtered() {
+  return DATA.trends.filter(t => {
+    if (FILTER.cats.length && !FILTER.cats.includes(t.category)) return false;
+    if (FILTER.growth !== null && (t.growth_rate || 0) < FILTER.growth) return false;
+    if (FILTER.vol !== null && (t.search_volume || 0) < FILTER.vol) return false;
+    if (FILTER.kw) {
+      const blob = (t.trend + ' ' + (t.related_queries || []).join(' ')).toLowerCase();
+      if (blob.indexOf(FILTER.kw) === -1) return false;
+    }
+    return true;
+  });
+}
+
+/* ---------------- 主渲染 ---------------- */
+function render() {
+  readFilter();
+  const sel = filtered();
+  if (!sel.length) {
+    $('#kpis').innerHTML =
+      '<div class="empty" style="grid-column:1/-1">当前筛选没有命中任何热点，试试放宽条件。</div>';
+    ['c_vol','c_grow','c_quad','c_catvol','c_catcnt','c_mom','c_brand','c_net']
+      .forEach(id => { const d = document.getElementById(id); if (d) d.innerHTML = ''; });
+    $('#tblEmerge').innerHTML = '<div class="empty">无数据</div>';
+    $('#tblAll').innerHTML = '';
+    $('#lifeBody').innerHTML = '<div class="empty">无数据</div>';
+    return;
+  }
+  renderKpi(sel);
+  renderBars(sel);
+  renderQuad(sel);
+  renderCats(sel);
+  renderMomentum(sel);
+  renderBrand(sel);
+  renderNetwork(sel);
+  renderEmerge(sel);
+  renderLife();
+  renderTable(sel);
+}
+
+/* ---------------- KPI ---------------- */
+function renderKpi(sel) {
+  const vols = sel.map(t => t.search_volume).filter(Boolean);
+  const grs = sel.map(t => t.growth_rate).filter(x => x !== null && x !== undefined);
+  const consumer = sel.filter(t => t.is_consumer).length;
+  const emerge = sel.filter(t => (t.growth_rate || 0) >= 500 && (t.search_volume || 0) >= 5000).length;
+  const cards = [
+    ['热点条数', fmtInt(sel.length), `占全量 ${(sel.length / DATA.trends.length * 100).toFixed(0)}%`],
+    ['搜索量合计', fmtK(vols.reduce((a, b) => a + b, 0)), '估算桶值加总，非精确值'],
+    ['增长率中位数', med(grs) + '%', '相对预测基线'],
+    ['搜索量中位数', fmtK(med(vols)), '桶值中位'],
+    ['消费相关', consumer, `占比 ${(consumer / sel.length * 100).toFixed(1)}%`],
+    ['新兴信号', emerge, '增长≥500% 且搜索量≥5K']
+  ];
+  $('#kpis').innerHTML = cards.map(([l, v, n]) =>
+    `<div class="card tight kpi"><div class="k-label">${l}</div>
+     <div class="k-val">${v}</div><div class="k-note">${n}</div></div>`).join('');
+}
+
+/* ---------------- 榜单 ---------------- */
+function renderBars(sel) {
+  const byVol = sel.slice().sort((a, b) => (b.search_volume || 0) - (a.search_volume || 0)).slice(0, 15);
+  const byGrow = sel.slice().sort((a, b) =>
+    (b.growth_rate || 0) - (a.growth_rate || 0) || (b.search_volume || 0) - (a.search_volume || 0)).slice(0, 15);
+
+  const hbar = (dom, rows, valueKey, fmt, labelFmt, xName) => {
+    const c = makeChart(dom);
+    if (!c) return;
+    const rev = rows.slice().reverse();
+    c.setOption({
+      grid: { left: 8, right: 62, top: 12, bottom: 30, containLabel: true },
+      tooltip: tipBase({
+        trigger: 'item', formatter: p => {
+          const d = rev[p.dataIndex];
+          return `<b>${esc(d.trend)}</b><br>搜索量 ${fmtInt(d.search_volume)}${
+            d.search_volume ? '（' + fmtK(d.search_volume) + '）' : ''}<br>
+            增长率 ${d.growth_rate}%　类别 ${catLabel(d.category)}${
+            d.brand ? '<br>品牌 ' + esc(d.brand) : ''}`;
+        }
+      }),
+      xAxis: axisBase({ type: 'value', name: xName, nameGap: 24, nameLocation: 'middle',
+        nameTextStyle: { color: 'var(--ink-3)', fontSize: 11 },
+        axisLabel: { color: AXIS_INK, fontSize: 11, formatter: labelFmt } }),
+      yAxis: axisBase({ type: 'category', splitLine: { show: false },
+        data: rev.map(d => clip(d.trend, 24)),
+        axisLabel: { color: 'var(--ink)', fontSize: 11.5 } }),
+      series: [{
+        type: 'bar', barWidth: '60%',
+        data: rev.map(d => ({ value: d[valueKey],
+          itemStyle: { color: catColor(d.category), borderRadius: [0, 5, 5, 0] } })),
+        label: { show: true, position: 'right', fontSize: 11, color: 'var(--ink-2)',
+          formatter: p => fmt(p.value) }
+      }]
+    }, true);
+  };
+  hbar('c_vol', byVol, 'search_volume', fmtInt, v => fmtK(v), '搜索量');
+  hbar('c_grow', byGrow, 'growth_rate', v => v + '%', v => v + '%', '增长率 %');
+}
+
+/* ---------------- 四象限 ---------------- */
+function renderQuad(sel) {
+  const c = makeChart('c_quad');
+  if (!c) return;
+  const vols = sel.map(t => t.search_volume || 0);
+  const grs = sel.map(t => t.growth_rate || 0);
+  const vref = med(vols), gref = med(grs);
+
+  const quadOf = t => {
+    const hi = (t.search_volume || 0) >= vref, hiG = (t.growth_rate || 0) >= gref;
+    return hi && hiG ? '爆发型' : hi && !hiG ? '成熟型' : !hi && hiG ? '潜在型' : '长尾型';
+  };
+  const groups = {};
+  sel.forEach(t => { (groups[quadOf(t)] = groups[quadOf(t)] || []).push(t); });
+
+  const style = {
+    '爆发型': ['#F43F5E', .88], '成熟型': ['#3B82F6', .8],
+    '潜在型': ['#F59E0B', .85], '长尾型': ['#94A3B8', .55]
+  };
+  const series = Object.keys(groups).map(k => ({
+    name: k + '（' + groups[k].length + '）', type: 'scatter',
+    data: groups[k].map(t => ({
+      name: t.trend,
+      value: [t.growth_rate || 0, t.search_volume || 0],
+      symbolSize: Math.max(7, Math.min(34, 6 + (t.related_query_count || 0) * 0.75))
+    })),
+    itemStyle: { color: style[k][0], opacity: style[k][1] },
+    emphasis: { focus: 'series', scale: 1.15 }
+  }));
+
+  series[0].markLine = {
+    silent: true, symbol: 'none',
+    lineStyle: { color: 'rgba(15,23,42,.26)', type: 'dashed', width: 1 },
+    label: { show: true, fontSize: 10.5, color: 'var(--ink-3)', formatter: p => p.name },
+    data: [{ xAxis: gref, name: '增长率中位 ' + gref + '%' },
+           { yAxis: vref, name: '搜索量中位 ' + fmtK(vref) }]
+  };
+
+  c.setOption({
+    grid: { left: 14, right: 40, top: 46, bottom: 40, containLabel: true },
+    legend: { top: 4, textStyle: { fontSize: 11.5, color: 'var(--ink-2)' },
+      itemWidth: 10, itemHeight: 10 },
+    tooltip: tipBase({
+      trigger: 'item', formatter: p =>
+        `<b>${esc(p.data.name)}</b><br>增长率 ${p.value[0]}%<br>搜索量 ${fmtInt(p.value[1])}`
+    }),
+    xAxis: axisBase({ type: 'log', name: '增长率 %（对数轴）', nameLocation: 'middle',
+      nameGap: 26, nameTextStyle: { color: 'var(--ink-3)', fontSize: 11 },
+      axisLabel: { color: AXIS_INK, fontSize: 11, formatter: '{value}%' } }),
+    yAxis: axisBase({ type: 'log', name: '搜索量（对数轴）',
+      nameTextStyle: { color: 'var(--ink-3)', fontSize: 11 },
+      axisLabel: { color: AXIS_INK, fontSize: 11, formatter: v => fmtK(v) } }),
+    series: series
+  }, true);
+}
+
+/* ---------------- 类别结构 ---------------- */
+function catStats(sel) {
+  const m = {};
+  sel.forEach(t => {
+    const s = m[t.category] = m[t.category] || { count: 0, volume: 0, gsum: 0 };
+    s.count++; s.volume += t.search_volume || 0; s.gsum += t.growth_rate || 0;
+  });
+  const totalV = Object.values(m).reduce((a, s) => a + s.volume, 0) || 1;
+  return Object.entries(m).map(([cat, s]) => ({
+    cat, count: s.count, volume: s.volume,
+    share: +(s.volume / totalV * 100).toFixed(1),
+    avgG: +(s.gsum / s.count).toFixed(0)
+  }));
+}
+
+function renderCats(sel) {
+  const rows = catStats(sel).sort((a, b) => b.volume - a.volume);
+
+  const donut = makeChart('c_catvol');
+  if (donut) donut.setOption({
+    tooltip: tipBase({ trigger: 'item', formatter: p =>
+      `${esc(p.name)}<br>搜索量 ${fmtInt(p.value)}<br>占比 ${p.percent}%` }),
+    legend: { bottom: 0, textStyle: { fontSize: 11, color: 'var(--ink-2)' }, itemWidth: 9, itemHeight: 9 },
+    series: [{
+      type: 'pie', radius: ['44%', '70%'], center: ['50%', '44%'],
+      data: rows.map(r => ({ name: catLabel(r.cat), value: r.volume,
+        itemStyle: { color: catColor(r.cat) } })),
+      label: { fontSize: 11, color: 'var(--ink)', formatter: '{b}\n{d}%' },
+      labelLine: { length: 7, length2: 7 },
+      itemStyle: { borderColor: '#fff', borderWidth: 2 }
+    }]
+  }, true);
+
+  const cnt = makeChart('c_catcnt');
+  if (cnt) {
+    const rev = rows.slice().sort((a, b) => a.count - b.count);
+    cnt.setOption({
+      grid: { left: 8, right: 52, top: 10, bottom: 24, containLabel: true },
+      tooltip: tipBase({ trigger: 'item', formatter: p => {
+        const r = rev[p.dataIndex];
+        return `<b>${catLabel(r.cat)}</b><br>热点 ${r.count} 条<br>搜索量 ${fmtInt(r.volume)}<br>平均增长率 ${r.avgG}%`;
+      } }),
+      xAxis: axisBase({ type: 'value' }),
+      yAxis: axisBase({ type: 'category', splitLine: { show: false },
+        data: rev.map(r => catLabel(r.cat)), axisLabel: { color: 'var(--ink)', fontSize: 11.5 } }),
+      series: [{
+        type: 'bar', barWidth: '58%',
+        data: rev.map(r => ({ value: r.count, itemStyle: { color: catColor(r.cat), borderRadius: [0, 5, 5, 0] } })),
+        label: { show: true, position: 'right', fontSize: 11, color: 'var(--ink-2)' }
+      }]
+    }, true);
+  }
+}
+
+/* ---------------- Momentum ---------------- */
+function renderMomentum(sel) {
+  const rows = sel.slice().sort((a, b) => momentum(b) - momentum(a)).slice(0, 10);
+  const c = makeChart('c_mom');
+  if (!c) return;
+  const max = momentum(rows[0]) || 1;
+  const rev = rows.slice().reverse();
+  c.setOption({
+    grid: { left: 8, right: 54, top: 10, bottom: 24, containLabel: true },
+    tooltip: tipBase({ trigger: 'item', formatter: p => {
+      const d = rev[p.dataIndex];
+      return `<b>${esc(d.trend)}</b><br>Momentum ${(momentum(d) / max * 100).toFixed(1)} / 100<br>
+        搜索量 ${fmtInt(d.search_volume)}<br>增长率 ${d.growth_rate}%`;
+    } }),
+    xAxis: axisBase({ type: 'value', max: 100 }),
+    yAxis: axisBase({ type: 'category', splitLine: { show: false },
+      data: rev.map(d => clip(d.trend, 20)), axisLabel: { color: 'var(--ink)', fontSize: 11.5 } }),
+    series: [{
+      type: 'bar', barWidth: '56%',
+      data: rev.map(d => ({ value: +(momentum(d) / max * 100).toFixed(1),
+        itemStyle: {
+          borderRadius: [0, 6, 6, 0],
+          color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+            { offset: 0, color: '#A855F7' }, { offset: 1, color: '#EC4899' }])
+        } })),
+      label: { show: true, position: 'right', fontSize: 11, color: 'var(--ink-2)',
+        formatter: p => p.value.toFixed(1) }
+    }]
+  }, true);
+}
+
+/* ---------------- 品牌热度 ---------------- */
+function renderBrand(sel) {
+  const m = {};
+  sel.forEach(t => {
+    if (!t.brand) return;
+    const s = m[t.brand] = m[t.brand] || { vol: 0, gsum: 0, n: 0, type: t.brand_type, items: [] };
+    s.vol += t.search_volume || 0; s.gsum += t.growth_rate || 0; s.n++;
+    s.items.push(t.trend);
+    s.type = s.type || t.brand_type;
+  });
+  const rows = Object.entries(m).map(([b, s]) => ({
+    brand: b, type: s.type, vol: s.vol, n: s.n,
+    heat: Math.log10(s.vol + 1) * (s.gsum / s.n), items: s.items
+  })).sort((a, b) => b.heat - a.heat).slice(0, 12);
+
+  const c = makeChart('c_brand');
+  if (!c) return;
+  if (!rows.length) {
+    $('#c_brand').innerHTML = '<div class="empty">当前筛选范围内没有识别到品牌热点</div>';
+    return;
+  }
+  const max = rows[0].heat || 1;
+  const rev = rows.slice().reverse();
+  c.setOption({
+    grid: { left: 8, right: 58, top: 10, bottom: 24, containLabel: true },
+    tooltip: tipBase({ trigger: 'item', formatter: p => {
+      const d = rev[p.dataIndex];
+      return `<b>${esc(d.brand)}</b>　${esc(d.type || '未分类')}<br>
+        品牌热度 ${(d.heat / max * 100).toFixed(0)} / 100<br>
+        搜索量合计 ${fmtInt(d.vol)}<br>关联热点 ${d.n} 条<br>
+        <span style="color:#64748B">${esc(clip(d.items.join('、'), 60))}</span>`;
+    } }),
+    xAxis: axisBase({ type: 'value', max: 100 }),
+    yAxis: axisBase({ type: 'category', splitLine: { show: false },
+      data: rev.map(d => d.brand), axisLabel: { color: 'var(--ink)', fontSize: 11.5 } }),
+    series: [{
+      type: 'bar', barWidth: '56%',
+      data: rev.map(d => ({ value: +(d.heat / max * 100).toFixed(1),
+        itemStyle: {
+          borderRadius: [0, 6, 6, 0],
+          color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+            { offset: 0, color: '#06B6D4' }, { offset: 1, color: '#6366F1' }])
+        } })),
+      label: { show: true, position: 'right', fontSize: 11, color: 'var(--ink-2)',
+        formatter: p => p.value.toFixed(0) }
+    }]
+  }, true);
+}
+
+/* ---------------- 关联词网络 ---------------- */
+function renderNetwork(sel) {
+  const c = makeChart('c_net');
+  if (!c) return;
+  const tops = sel.slice().sort((a, b) => (b.search_volume || 0) - (a.search_volume || 0)).slice(0, 8)
+    .filter(t => (t.related_queries || []).length);
+  if (!tops.length) {
+    $('#c_net').innerHTML = '<div class="empty">当前范围内的热点没有携带关联搜索词</div>';
+    return;
+  }
+  const nodes = [], links = [], seen = new Set();
+  tops.forEach(t => {
+    const tid = 'T:' + t.trend_id;
+    if (!seen.has(tid)) {
+      seen.add(tid);
+      nodes.push({ id: tid, name: t.trend, kind: 'trend', cat: t.category,
+        symbolSize: 22 + Math.min(20, (t.related_query_count || 0) * 0.5) });
+    }
+    (t.related_queries || []).slice(0, 8).forEach(q => {
+      const qid = 'Q:' + q.toLowerCase();
+      if (!seen.has(qid)) { seen.add(qid); nodes.push({ id: qid, name: q, kind: 'q', cat: t.category }); }
+      links.push({ source: tid, target: qid, lineStyle: { color: catColor(t.category) + '66' } });
+    });
+  });
+  c.setOption({
+    tooltip: tipBase({ formatter: p => p.dataType === 'edge'
+      ? esc(p.data.source.replace(/^[TQ]:/, '')) + ' → ' + esc(p.data.target.replace(/^[TQ]:/, ''))
+      : `<b>${esc(p.data.name)}</b><br>${p.data.kind === 'trend' ? '热点 · ' + catLabel(p.data.cat) : '细分搜索词'}` }),
+    series: [{
+      type: 'graph', layout: 'force', roam: true,
+      force: { repulsion: 260, edgeLength: [50, 130], gravity: 0.08 },
+      label: { show: true, fontSize: 10.5, color: 'var(--ink-2)',
+        formatter: p => clip(p.data.name, 16) },
+      lineStyle: { width: 1, curveness: 0.12, opacity: .6 },
+      emphasis: { focus: 'adjacency', lineStyle: { width: 2.4 } },
+      data: nodes.map(n => n.kind === 'trend'
+        ? { id: n.id, name: n.name, symbolSize: n.symbolSize, category: 0, kind: n.kind, cat: n.cat,
+            itemStyle: { color: catColor(n.cat), borderColor: '#fff', borderWidth: 2 },
+            label: { fontSize: 12, fontWeight: 700, color: 'var(--ink)' } }
+        : { id: n.id, name: n.name, symbolSize: 8, category: 1, kind: n.kind, cat: n.cat,
+            itemStyle: { color: catColor(n.cat), opacity: .55 } }),
+      links: links
+    }]
+  }, true);
+}
+
+/* ---------------- 新兴信号 ---------------- */
+function renderEmerge(sel) {
+  const rows = sel.filter(t => (t.growth_rate || 0) >= 500 && (t.search_volume || 0) >= 5000)
+    .sort((a, b) => (b.growth_rate || 0) - (a.growth_rate || 0) || (b.search_volume || 0) - (a.search_volume || 0));
+  if (!rows.length) {
+    $('#tblEmerge').innerHTML =
+      '<div class="empty">当前筛选范围内没有满足「增长率≥500% 且搜索量≥5K」的热点</div>';
+    return;
+  }
+  $('#tblEmerge').innerHTML = `<div class="scroll"><table><thead><tr>
+    <th>热点</th><th>类别</th><th class="num">搜索量</th><th class="num">增长率</th>
+    <th>品牌</th><th class="num">关联词</th><th>细分搜索线索</th></tr></thead><tbody>
+    ${rows.map(t => `<tr>
+      <td><b>${esc(t.trend)}</b></td>
+      <td><span class="tag" style="background:${catColor(t.category)}1F;color:${catColor(t.category)}">${esc(catLabel(t.category))}</span></td>
+      <td class="num">${fmtInt(t.search_volume)}</td>
+      <td class="num up">+${t.growth_rate}%</td>
+      <td>${t.brand ? esc(t.brand) : '<span class="muted">—</span>'}</td>
+      <td class="num">${t.related_query_count || 0}</td>
+      <td class="muted">${esc(clip((t.related_queries || []).slice(0, 4).join('、'), 46))}</td>
+    </tr>`).join('')}</tbody></table></div>`;
+}
+
+/* ---------------- 生命周期 ---------------- */
+function renderLife() {
+  const snaps = (DATA.trends[0] || {}).persistence;
+  const withP = DATA.trends.filter(t => (t.persistence || 1) > 1);
+  const durs = DATA.trends.map(t => t.duration_hours).filter(d => typeof d === 'number');
+  if (!durs.length && !withP.length) {
+    $('#lifeBody').innerHTML = `<div class="cav">
+      <b>本期不可用</b> —— 生命周期指标（持续时长 / 连续在榜次数 / 每小时新增）
+      依赖多期快照累积。当前只有 1 期快照，无法计算。<br>
+      开启定时采集后，累积 2 期起即可用；3–7 天可得到稳定的生命周期分布。</div>`;
+    return;
+  }
+  const buckets = [['<2h', 0], ['2-6h', 0], ['6-12h', 0], ['12-24h', 0], ['>24h', 0]];
+  durs.forEach(d => {
+    if (d < 2) buckets[0][1]++; else if (d < 6) buckets[1][1]++;
+    else if (d < 12) buckets[2][1]++; else if (d < 24) buckets[3][1]++; else buckets[4][1]++;
+  });
+  const top = DATA.trends.slice().sort((a, b) => (b.persistence || 0) - (a.persistence || 0)).slice(0, 10);
+  $('#lifeBody').innerHTML = `
+    <div class="grid g2">
+      <div>
+        <h3>持续时长分布（小时）</h3>
+        <div id="c_life" class="chart" style="height:300px"></div>
+      </div>
+      <div>
+        <h3>连续在榜 Top 10</h3>
+        <div class="scroll" style="max-height:300px"><table><thead><tr>
+          <th>热点</th><th class="num">连续在榜</th><th class="num">时长(h)</th><th>状态</th>
+        </tr></thead><tbody>
+        ${top.map(t => `<tr><td>${esc(clip(t.trend, 26))}</td>
+          <td class="num">${t.persistence || 1}</td>
+          <td class="num">${t.duration_hours != null ? t.duration_hours : '—'}</td>
+          <td><span class="chip ${t.status === 'Active' ? 'mint' : 'gray'}">${esc(t.status || '—')}</span></td>
+        </tr>`).join('')}</tbody></table></div>
+      </div>
+    </div>`;
+  const c = makeChart('c_life');
+  if (c) c.setOption({
+    grid: { left: 8, right: 20, top: 16, bottom: 30, containLabel: true },
+    tooltip: tipBase({ trigger: 'axis' }),
+    xAxis: axisBase({ type: 'category', data: buckets.map(b => b[0]) }),
+    yAxis: axisBase({ type: 'value', name: '热点数' }),
+    series: [{
+      type: 'bar', barWidth: '52%',
+      data: buckets.map(b => ({ value: b[1],
+        itemStyle: { borderRadius: [6, 6, 0, 0],
+          color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: '#06B6D4' }, { offset: 1, color: '#6366F1' }]) } })),
+      label: { show: true, position: 'top', fontSize: 11, color: 'var(--ink-2)' }
+    }]
+  }, true);
+}
+
+/* ---------------- 明细表 ---------------- */
+function renderTable(sel) {
+  const rows = sel.slice().sort((a, b) => (b.search_volume || 0) - (a.search_volume || 0));
+  $('#tblCount').textContent = `${rows.length} 条 · 按搜索量降序`;
+  $('#tblAll').innerHTML = `<thead><tr>
+    <th>#</th><th>热点</th><th>类别</th><th class="num">搜索量</th>
+    <th class="num">增长率</th><th>品牌</th><th class="num">关联词</th><th>状态</th>
+    </tr></thead><tbody>
+    ${rows.map((t, i) => `<tr>
+      <td class="muted">${i + 1}</td>
+      <td><b>${esc(t.trend)}</b></td>
+      <td><span class="tag" style="background:${catColor(t.category)}1F;color:${catColor(t.category)}">${esc(catLabel(t.category))}</span>${
+        (t.categories || []).length > 1 ? ' <span class="muted" title="同时命中其他类别">+' + ((t.categories || []).length - 1) + '</span>' : ''}</td>
+      <td class="num">${fmtInt(t.search_volume)}</td>
+      <td class="num up">+${t.growth_rate}%</td>
+      <td>${t.brand ? esc(t.brand) : '<span class="muted">—</span>'}</td>
+      <td class="num">${t.related_query_count || 0}</td>
+      <td><span class="chip ${t.status === 'Active' ? 'mint' : 'gray'}">${esc(t.status || '—')}</span></td>
+    </tr>`).join('')}</tbody>`;
+}
+
+/* ---------------- 交互 ---------------- */
+let debounce = null;
+const debounced = () => { clearTimeout(debounce); debounce = setTimeout(render, 260); };
+$('#fCat').onchange = render;
+$('#fKw').oninput = debounced;
+$('#fGrowth').oninput = debounced;
+$('#fVol').oninput = debounced;
+$('#btnReset').onclick = () => {
+  $('#fCat').selectedIndex = -1;
+  $('#fKw').value = ''; $('#fGrowth').value = ''; $('#fVol').value = '';
+  toast('已重置筛选', 'info');
+  render();
+};
+$('#btnRefresh').onclick = () => { load(); toast('已重新读取数据', 'ok'); };
+
+load();
+</script>
+</body>
+</html>

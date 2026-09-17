@@ -1,0 +1,481 @@
+{
+  "version": "1.0.0",
+  "updated_at": "2026-09-16",
+  "built_by": "LLM 依据真实抓取样本（299 条 Google Trends US 热点 + 关联搜索词）构建，逐类人工校对",
+  "method": "加权打分词典：strong=3分 / weak=1分 / patterns 按权重；取最高分作为主类别，超过阈值的同时输出为多标签。不依赖模型调用，可复现、零成本。",
+  "scoring": {
+    "strong": 3,
+    "weak": 1,
+    "query_text_weight": 1.0,
+    "related_queries_weight": 0.5,
+    "multilabel_ratio": 0.6,
+    "min_score_for_multilabel": 3
+  },
+
+  "categories": {
+    "Sports": {
+      "label": "体育",
+      "color": "#F43F5E",
+      "desc": "赛事对阵、球队、球员、联赛、积分榜",
+      "patterns": [
+        ["\\b(?:[a-z]{2,}\\s+)?(?:vs|v|versus)\\b", 3],
+        ["\\bcontra\\b", 3],
+        ["\\b(?:posiciones|clasificacion|jornada|resultado)\\b", 2],
+        ["\\b(?:fc|cf|sc|afc)\\b", 2],
+        ["\\b\\d{4}\\s+(?:world cup|olympics|super bowl|world series)\\b", 3]
+      ],
+      "strong": [
+        "standings", "score", "scores", "playoff", "playoffs", "postseason", "wildcard", "wild card",
+        "magic number", "championship", "semifinal", "quarterfinal", "hat trick", "hat-trick",
+        "super bowl", "world series", "nba finals", "stanley cup", "world cup", "grand slam",
+        "us open", "wimbledon", "roland garros", "premier league", "la liga", "serie a", "bundesliga",
+        "liga mx", "mls", "nfl", "nba", "mlb", "nhl", "wnba", "ncaa", "ufc", "pga", "formula 1",
+        "copa libertadores", "copa sudamericana", "libertadores", "sudamericana", "conmebol",
+        "carabao cup", "efl cup", "fa cup",
+        "champions league", "europa league", "playoff picture", "division", "conference",
+        "real madrid", "barcelona", "atletico madrid", "sevilla fc", "espanyol", "rayo vallecano",
+        "alaves", "elche", "valencia c. f.", "puebla", "toluca", "boca juniors", "fluminense",
+        "sao paulo", "vasco", "santa fe", "platense", "al-nassr", "al hilal", "al ain", "al-gharafa",
+        "liverpool", "arsenal", "chelsea", "tottenham", "west ham", "fulham", "ipswich", "brentford",
+        "middlesbrough", "millwall", "fiorentina", "pisa", "ajax", "willem ii", "dodgers", "yankees",
+        "red sox", "texas rangers", "brewers", "pirates", "phillies", "nationals", "royals", "astros",
+        "braves", "mets", "rockies", "angels", "guardians", "diamondbacks", "marlins", "twins",
+        "reds", "cubs", "padres", "rays", "athletics", "white sox", "chiefs", "eagles", "cowboys",
+        "packers", "49ers", "ravens", "lions", "bengals", "bills", "steelers", "patriots", "lakers",
+        "celtics", "warriors", "knicks", "nuggets", "mavericks", "bucks", "suns", "thunder",
+        "savannah bananas", "soldier field", "rose bowl", "caitlin clark", "usain bolt",
+        "simone biles", "sloane stephens", "ben shelton", "alycia parks", "janice tjen",
+        "roberto clemente", "michael jordan", "steve kerr", "mike ditka", "mbappe", "vinicius junior",
+        "arda guler", "raheem sterling", "james rodriguez", "yoshinobu yamamoto", "shohei ohtani",
+        "cody bellinger", "kyle schwarber", "teoscar hernandez", "jacob degrom", "yordan alvarez",
+        "kevin gausman", "max fried", "ronald acuna", "ozzie albies", "drake baldwin",
+        "connor bedard", "spencer torkelson", "travis bazzana", "cole carrigg", "cutter gauthier",
+        "john konchar", "drew eubanks", "jacob misiorowski", "coby mayo", "logan gilbert",
+        "todd blanche", "shawn horcoff", "mike lafleur", "sterling shepard", "joe thomas",
+        "arch manning", "caleb douglas", "ezra frech", "tyler cameron dwts"
+      ],
+      "weak": [
+        "game", "games", "match", "matches", "tournament", "league", "cup", "team", "teams",
+        "roster", "trade", "draft", "injury", "coach", "manager", "transfer", "wicket", "innings",
+        "goal", "goals", "points", "referee", "seeding", "record", "win", "loss", "defense rankings",
+        "tennis", "golf", "boxing", "wrestling", "wwe", "cycling", "swimming", "marathon", "sprint",
+        "track and field", "athletics", "eng vs sl", "ind vs afg", "aus vs zim", "college sports"
+      ]
+    },
+
+    "Entertainment": {
+      "label": "娱乐",
+      "color": "#A855F7",
+      "desc": "影视、综艺、音乐、颁奖礼、明星八卦",
+      "patterns": [
+        ["\\bseason\\s+\\d+\\b", 2],
+        ["\\b(?:emmys?|oscars?|grammys?|golden globes?|tony awards?|vmAs?)\\b", 3],
+        ["\\b(?:netflix|hulu|hbo|max|peacock|paramount\\+|disney\\+)\\b", 2]
+      ],
+      "strong": [
+        "dwts", "dancing with the stars", "who went home", "elimination", "emmys", "emmy",
+        "oscars", "academy awards", "grammy", "golden globe", "box office", "red carpet",
+        "movie", "film", "documentary", "trailer", "premiere", "finale", "reboot", "sequel",
+        "spin-off", "spinoff", "sitcom", "reality show", "netflix", "disney plus", "hbo max",
+        "prime video", "apple tv", "bachelor", "bachelorette", "american idol", "the voice",
+        "traitors", "below deck", "wheel of fortune", "jeopardy", "star trek", "slow horses",
+        "the gilded age", "the perfect lie", "high potential", "the rookie", "reacher",
+        "the walking dead", "house of the dragon", "the nerd reich", "nyff", "film festival",
+        "walk of fame", "peanuts", "snoopy", "taylor swift", "ed sheeran", "drake", "shakira",
+        "rihanna", "hanson", "kenny chesney", "harry styles", "dave chappelle", "benny blanco",
+        "kelly osbourne", "aimee osbourne", "paris hilton", "kim kardashian", "prince harry",
+        "meghan markle", "prince archie", "princess lilibet", "prince william", "drew barrymore",
+        "helen mirren", "jessica chastain", "andrew garfield", "robert downey jr", "rafe spall",
+        "stephen colbert", "jimmy kimmel", "dermot mulroney", "charlie sheen", "emilio estevez",
+        "joey graziadei", "ryan phillippe", "winnie harlow", "chelsea frei", "taylor frankie paul",
+        "jenna dewan", "amanda seyfried", "holly rowe", "julia stiles", "guillermo rodriguez",
+        "sharna burgess", "witney carson", "sasha farber", "bruno tonioli", "mark ballas",
+        "conner leavitt", "rj decker", "emma slater", "maura higgins", "harry shum jr",
+        "alfonso ribeiro", "tyler cameron bachelor", "taylor hanson wife", "carole radziwill",
+        "carmine agnello", "giada de laurentiis", "rachel szor", "yuval abraham",
+        "robert irwin", "ki michael", "walt disney", "disney", "marvel", "star wars"
+      ],
+      "weak": [
+        "series", "episode", "show", "shows", "cast", "actor", "actress", "singer", "band",
+        "album", "song", "single", "concert", "tour", "festival", "coachella", "comedy",
+        "celebrity", "stage", "tv", "streaming", "subscriber"
+      ]
+    },
+
+    "Politics": {
+      "label": "政治与公共事务",
+      "color": "#F59E0B",
+      "desc": "选举、政府、国会、军事外交、司法",
+      "patterns": [
+        ["\\b(?:impeachment|subpoena|indictment|grand jury)\\b", 3],
+        ["\\b(?:senate|congress|white house|supreme court)\\b", 3],
+        ["\\bgop\\b", 3]
+      ],
+      "strong": [
+        "election", "elections", "midterm", "primary election", "ballot", "voter registration",
+        "voting", "vote", "senate", "congress", "house of representatives", "governor",
+        "white house", "cabinet", "impeachment", "subpoena", "grand jury", "indictment",
+        "supreme court", "scotus", "gop", "republican", "democrat", "administration",
+        "kennedy center", "pentagon", "state department", "central command", "national guard",
+        "immigration", "deportation", "ice raid", "border patrol", "government shutdown",
+        "military aid", "military strike", "airstrike", "ceasefire", "sanctions", "nato",
+        "donald trump", "joe biden", "kamala harris", "kash patel", "jon ossoff",
+        "zohran mamdani", "kevin mccarthy", "john brennan", "chris murphy", "thomas massie",
+        "pete hegseth", "chuck grassley", "kerry kennedy", "claudia sheinbaum", "marjorie taylor greene",
+        "voter registration day", "protect college sports act", "clarity act", "common cents act",
+        "irs 2027 tax bracket projections", "gop convention", "political", "politics",
+        "senator", "congressman", "attorney general", "fbi director", "washington"
+      ],
+      "weak": [
+        "policy", "legislation", "bill", "law", "court", "ruling", "judge", "trial",
+        "act", "reform", "campaign", "rally", "poll", "polling", "protest", "war",
+        "iran", "israel", "ukraine", "china", "russia", "venezuela", "military",
+        "troops", "defense", "diplomacy", "treaty", "ambassador", "capitol", "shutdown"
+      ]
+    },
+
+    "Technology": {
+      "label": "科技",
+      "color": "#06B6D4",
+      "desc": "AI、消费电子、软件、航天、网络安全",
+      "patterns": [
+        ["\\b(?:ai|a\\.i\\.)\\b", 2],
+        ["\\b(?:ios|android|windows|macos)\\b", 2]
+      ],
+      "strong": [
+        "artificial intelligence", "chatgpt", "openai", "anthropic", "claude", "gemini",
+        "iphone", "ipad", "macbook", "airpods", "apple watch", "apple intelligence",
+        "samsung galaxy", "pixel", "google pixel", "microsoft", "windows 11",
+        "nvidia", "semiconductor", "chip", "gpu", "data center", "cloud computing",
+        "spacex", "starlink", "nasa", "space force", "satellite", "orbit", "rocket launch",
+        "cybersecurity", "data breach", "hacked", "ransomware", "outage", "downdetector",
+        "robot", "robotics", "quantum computing", "electric vehicle", "self-driving",
+        "technology news", "tech", "discord", "discord outage", "tiktok", "instagram",
+        "whatsapp", "telegram", "twitter", "google", "apple", "samsung", "tesla", "meta",
+        "space control capabilities", "on orbit"
+      ],
+      "weak": [
+        "software", "hardware", "app", "apps", "update", "update", "device", "gadget",
+        "internet", "browser", "server", "api", "startup", "silicon", "settings", "silicon valley"
+      ]
+    },
+
+    "Gaming": {
+      "label": "游戏",
+      "color": "#10B981",
+      "desc": "主机/PC/手游、电竞赛事、游戏版本与服务器状态",
+      "patterns": [
+        ["\\bis .{2,20} down\\b", 3],
+        ["\\b(?:league of legends|call of duty|world of warcraft)\\b", 3]
+      ],
+      "strong": [
+        "gta vi", "gta 6", "grand theft auto", "runescape", "dragonwilds", "resident evil",
+        "league of legends", "valorant", "riot games", "fortnite", "roblox", "minecraft",
+        "overwatch", "diablo", "world of warcraft", "fire emblem", "pokemon", "nintendo switch",
+        "playstation", "ps5", "xbox", "steam deck", "epic games", "esports", "game awards",
+        "early access", "steam", "videogame", "video game", "gaming", "twitch", "speedrun",
+        "patch notes", "server status", "down detector"
+      ],
+      "weak": [
+        "expansion", "dlc", "beta", "nerf", "buff", "loot", "raid", "season pass", "console",
+        "gamer", "multiplayer", "quest", "riot"
+      ]
+    },
+
+    "Business": {
+      "label": "企业与就业",
+      "color": "#3B82F6",
+      "desc": "公司经营、并购、诉讼、裁员招聘、产业链",
+      "patterns": [
+        ["\\b(?:earnings|revenue|layoffs?|merger|acquisition)\\b", 3],
+        ["\\b(?:ceo|cfo|ipo)\\b", 3]
+      ],
+      "strong": [
+        "earnings", "revenue", "profit", "quarterly results", "ipo", "stock split",
+        "merger", "acquisition", "acquire", "layoffs", "layoff", "hiring", "job cuts",
+        "unemployment", "jobs report", "labor", "union", "strike", "lawsuit", "settlement",
+        "antitrust", "class action", "bankruptcy", "chapter 11", "factory", "plant",
+        "manufacturing", "supply chain", "recall", "palantir", "boeing", "ford", "gm",
+        "stellantis", "hyundai", "toyota", "amazon", "walmart", "target", "starbucks",
+        "ceo", "founder", "chairman", "peter thiel", "leon black", "hyundai plant",
+        "immigration raid", "plant relocation", "production relocation"
+      ],
+      "weak": [
+        "company", "corp", "inc", "business", "deal", "contract", "partnership", "brand",
+        "retail", "store", "closing", "expansion", "investment", "investor", "funding",
+        "valuation", "jobs", "elon musk", "workforce", "wages"
+      ]
+    },
+
+    "Finance": {
+      "label": "金融与市场",
+      "color": "#6366F1",
+      "desc": "股指、利率、加密、大宗、税务与个人理财",
+      "patterns": [
+        ["\\b(?:s&p|s and p|dow jones|nasdaq)\\b", 3],
+        ["\\b(?:bitcoin|btc|ethereum|eth|xrp|solana)\\b", 3],
+        ["\\bprice today\\b", 3],
+        ["\\b(?:mortgage|refinance) rates?\\b", 3]
+      ],
+      "strong": [
+        "stock market", "stock market today", "stock", "stocks", "dow jones", "nasdaq",
+        "treasury", "10 year treasury", "bond yield", "fed", "federal reserve",
+        "interest rate", "rate cut", "rate hike", "mortgage rates", "refinance",
+        "inflation", "cpi", "gdp", "recession", "tariff", "tax bracket", "401k",
+        "crypto", "cryptocurrency", "bitcoin", "btc", "ethereum", "xrp", "solana", "coinbase",
+        "gold price", "silver price", "oil price", "crude oil", "natural gas", "commodity",
+        "futures", "options", "dividend", "hedge fund", "forex", "exchange rate",
+        "portfolio", "bond", "bonds", "yield", "goog", "aapl", "tsla", "nvda", "amzn", "msft"
+      ],
+      "weak": [
+        "market", "markets", "index", "economy", "economic", "trading", "investing",
+        "price", "precio", "dollar", "currency", "budget", "debt", "savings", "pension",
+        "petroleum", "gasoline", "diesel"
+      ]
+    },
+
+    "Consumer": {
+      "label": "消费与零售",
+      "color": "#EC4899",
+      "desc": "品牌与商品、促销、联名、上新、零售渠道",
+      "patterns": [
+        ["\\b(?:collab|collaboration|collection|restock)\\b", 3],
+        ["\\b(?:deal|deals|sale|discount|coupon|clearance|presale|preorder|sold out)\\b", 3],
+        ["\\bnear me\\b", 2]
+      ],
+      "strong": [
+        "target", "walmart", "costco", "best buy", "home depot", "lowes", "kroger", "aldi",
+        "trader joe", "dollar general", "nike", "adidas", "puma", "shein", "temu", "zara",
+        "h&m", "uniqlo", "owala", "stanley cup", "yeti", "hydro flask", "starbucks",
+        "mcdonalds", "chipotle", "dunkin", "taco bell", "longhorn steakhouse", "steak house",
+        "firenze restaurant", "ticketmaster", "ticket master", "seatgeek", "stubhub",
+        "pokemon owala", "peanuts collection", "snoopy cup", "starbucks peanuts collab",
+        "rolex", "prada", "gucci", "louis vuitton", "chanel", "dior", "dyson",
+        "product launch", "new release", "in stock", "price drop", "black friday",
+        "cyber monday", "prime day", "shopping", "buy", "shop", "retailer", "merch",
+        "gas buddy", "gasbuddy", "gas near me", "daycare near me", "rebate"
+      ],
+      "weak": [
+        "brand", "product", "collection", "fashion", "beauty", "makeup", "skincare",
+        "sneaker", "sneakers", "outfit", "luxury", "watch", "gift", "menu", "recipe",
+        "food", "restaurant", "sale", "deal", "price", "coupon", "discount", "store"
+      ]
+    },
+
+    "Travel": {
+      "label": "旅行",
+      "color": "#F97316",
+      "desc": "航空、酒店、目的地、国家公园、出行政策",
+      "patterns": [
+        ["\\b(?:national park|grand canyon|yellowstone|yosemite)\\b", 3],
+        ["\\b(?:priority pass|tsa precheck)\\b", 3]
+      ],
+      "strong": [
+        "flight", "flights", "airline", "airlines", "airport", "hotel", "resort", "airbnb",
+        "vrbo", "cruise", "vacation", "road trip", "itinerary", "tourism", "tourist",
+        "national park", "national park service", "grand canyon", "yellowstone", "yosemite",
+        "kauai", "maui", "hawaii", "priority pass", "tsa", "passport", "visa", "travel",
+        "destination", "booking", "holiday travel", "tsa precheck"
+      ],
+      "weak": [
+        "trip", "tour", "lounge", "passport", "customs", "resort fee", "guide", "destination"
+      ]
+    },
+
+    "Health": {
+      "label": "健康与医疗",
+      "color": "#8B5CF6",
+      "desc": "疾病、药品、疫苗、公共卫生与产品安全",
+      "patterns": [
+        ["\\b(?:measles|flu|covid|vaccine|outbreak|epidemic)\\b", 3],
+        ["\\b(?:fda|cdc|nih|who)\\b", 2],
+        ["\\brecall\\b", 2]
+      ],
+      "strong": [
+        "measles", "measles deaths", "flu", "influenza", "covid", "coronavirus", "vaccine",
+        "vaccination", "outbreak", "epidemic", "pandemic", "cdc", "fda", "nih",
+        "hospital", "emergency room", "doctor", "nurse", "mental health", "depression",
+        "anxiety", "therapy", "fentanyl", "opioid", "overdose", "cancer", "diabetes",
+        "obesity", "pregnancy", "symptoms", "treatment", "hand soap recall", "food recall",
+        "drug recall", "lucy letby", "jonbenet ramsey", "health"
+      ],
+      "weak": [
+        "disease", "illness", "virus", "medicine", "drug", "drugs", "pain", "clinic",
+        "surgery", "recovery", "fatigue", "sleep", "fitness", "hyrox competition"
+      ]
+    },
+
+    "Weather": {
+      "label": "天气与自然",
+      "color": "#14B8A6",
+      "desc": "气象灾害、地质活动、自然与野生动物",
+      "patterns": [
+        ["\\b(?:hurricane|tornado|typhoon|blizzard|wildfire)\\b", 3],
+        ["\\b(?:earthquake|tsunami|volcano)\\b", 3],
+        ["\\bweather (?:today|forecast|radar)\\b", 3]
+      ],
+      "strong": [
+        "hurricane", "hurricane season", "tropical storm", "tornado", "flood", "flooding",
+        "drought", "wildfire", "heat wave", "heatwave", "blizzard", "ice storm",
+        "weather today", "weather", "forecast", "temperature", "volcano", "earthquake",
+        "tsunami", "landslide", "great white shark", "shark", "wildfire smoke",
+        "air quality", "atlantic hurricane season"
+      ],
+      "weak": [
+        "storm", "rain", "snow", "wind", "climate", "nature", "wildlife", "animal", "river"
+      ]
+    },
+
+    "Society": {
+      "label": "时事与社会",
+      "color": "#0EA5E9",
+      "desc": "节日纪念、新闻媒体、司法治安、教育民生、地域动态",
+      "patterns": [
+        ["\\b(?:independence day|national day|memorial day|labor day|juneteenth|veterans day)\\b", 3],
+        ["\\b(?:highway patrol|police department|amber alert)\\b", 3],
+        ["\\b(?:new york times|washington post|wall street journal|associated press)\\b", 3]
+      ],
+      "strong": [
+        "independence day", "national day", "observance", "holiday", "memorial day",
+        "labor day", "juneteenth", "veterans day", "flag day", "thanksgiving",
+        "halloween", "christmas", "new year", "lunar new year", "ramadan", "eid",
+        "hanukkah", "diwali", "cinco de mayo", "dia de los muertos", "grito de independencia",
+        "voter registration day", "new york times", "nyt", "cnn", "fox news", "bbc",
+        "reuters", "washington post", "wall street journal", "usa today", "politico",
+        "news outlet", "press conference", "headline", "journalist", "broadcast",
+        "school", "schools", "education", "university", "campus", "student", "tuition",
+        "highway patrol", "police", "crime", "arrest", "missing person", "amber alert",
+        "obituary", "funeral", "wedding", "graduation", "daycare", "foster care",
+        "helicopter crash", "plane crash", "car crash", "train derailment", "accident",
+        "emergency", "fire department", "volunteer", "charity", "donation",
+        "guatemala", "nigeria", "ceuta", "el salvador", "honduras", "venezuela",
+        "mexican independence day", "abc.com", "knbc", "abc news", "nbc news", "cbs news",
+        "ten most wanted", "fugitive", "missing person", "amber alert", "silver alert"
+      ],
+      "weak": [
+        "news", "press", "media", "report", "community", "city", "state", "county",
+        "resident", "public", "event", "ceremony", "museum", "exhibit", "memorial",
+        "independence", "national", "cultural", "heritage", "abc"
+      ]
+    }
+  },
+
+  "commerce_types": {
+    "Brand": {
+      "label": "品牌",
+      "desc": "趋势指向某个品牌本身"
+    },
+    "Product": {
+      "label": "商品",
+      "desc": "趋势指向具体商品"
+    },
+    "Retailer": {
+      "label": "零售商",
+      "desc": "渠道商、电商平台、线下连锁"
+    },
+    "Promotion": {
+      "label": "促销",
+      "desc": "折扣、优惠、限时活动",
+      "keywords": ["deal", "deals", "sale", "discount", "coupon", "clearance", "promo",
+                   "black friday", "cyber monday", "prime day", "rebate", "price drop", "off"]
+    },
+    "Product Launch": {
+      "label": "新品发布",
+      "desc": "上新、发布、预购",
+      "keywords": ["launch", "release", "new release", "preorder", "pre-order", "presale",
+                   "pre-order", "restock", "anniversary", "edition", "unveil"]
+    },
+    "Entertainment IP": {
+      "label": "娱乐IP",
+      "desc": "影视/动漫/游戏 IP 衍生的消费需求",
+      "keywords": ["pokemon", "peanuts", "snoopy", "disney", "marvel", "star wars",
+                   "hello kitty", "sanrio", "nintendo", "one piece", "studio ghibli"]
+    },
+    "Travel": {
+      "label": "旅行消费",
+      "desc": "机票酒店与出行服务",
+      "keywords": ["flight", "hotel", "resort", "airline", "airport", "cruise", "vacation",
+                   "booking", "priority pass", "tsa precheck"]
+    },
+    "Consumer Electronics": {
+      "label": "消费电子",
+      "desc": "手机、电脑、数码配件",
+      "keywords": ["iphone", "ipad", "macbook", "airpods", "galaxy", "pixel", "laptop",
+                   "headphones", "earbuds", "smartwatch", "console", "ps5", "xbox", "switch"]
+    },
+    "Fashion": {
+      "label": "时尚",
+      "desc": "服饰、鞋履、箱包、腕表",
+      "keywords": ["nike", "adidas", "shein", "temu", "zara", "sneaker", "outfit",
+                   "prada", "gucci", "chanel", "dior", "rolex", "handbag", "apparel"]
+    },
+    "Beauty": {
+      "label": "美妆个护",
+      "desc": "护肤、彩妆、个护",
+      "keywords": ["beauty", "makeup", "skincare", "serum", "perfume", "fragrance",
+                   "haircare", "cosmetics", "soap", "lotion"]
+    },
+    "Food": {
+      "label": "食品餐饮",
+      "desc": "餐饮品牌、食品饮料",
+      "keywords": ["starbucks", "mcdonalds", "chipotle", "dunkin", "taco bell", "recipe",
+                   "menu", "restaurant", "steakhouse", "snack", "beverage", "coffee"]
+    },
+    "Game": {
+      "label": "游戏",
+      "desc": "游戏本体与内购",
+      "keywords": ["gta", "runescape", "resident evil", "league of legends", "fortnite",
+                   "roblox", "minecraft", "steam", "esports", "expansion", "dlc"]
+    },
+    "Promotion/Other": {
+      "label": "其他消费",
+      "desc": "无法归入上述子类的消费信号"
+    }
+  },
+
+  "brands": [
+    {"name": "Apple", "aliases": ["apple", "iphone", "ipad", "macbook", "airpods", "apple watch"], "commerce_type": "Consumer Electronics"},
+    {"name": "Samsung", "aliases": ["samsung", "galaxy"], "commerce_type": "Consumer Electronics"},
+    {"name": "Google", "aliases": ["google pixel", "google play", "google"], "commerce_type": "Consumer Electronics"},
+    {"name": "Nvidia", "aliases": ["nvidia", "geforce"], "commerce_type": "Consumer Electronics"},
+    {"name": "Sony", "aliases": ["sony", "playstation", "ps5"], "commerce_type": "Game"},
+    {"name": "Microsoft", "aliases": ["microsoft", "xbox", "windows"], "commerce_type": "Consumer Electronics"},
+    {"name": "Nintendo", "aliases": ["nintendo", "switch 2"], "commerce_type": "Game"},
+    {"name": "Valve", "aliases": ["steam deck", "valve"], "commerce_type": "Game"},
+    {"name": "Riot Games", "aliases": ["riot games", "league of legends", "valorant"], "commerce_type": "Game"},
+    {"name": "Target", "aliases": ["target"], "commerce_type": "Retailer"},
+    {"name": "Walmart", "aliases": ["walmart"], "commerce_type": "Retailer"},
+    {"name": "Amazon", "aliases": ["amazon", "prime day"], "commerce_type": "Retailer"},
+    {"name": "Costco", "aliases": ["costco"], "commerce_type": "Retailer"},
+    {"name": "Best Buy", "aliases": ["best buy"], "commerce_type": "Retailer"},
+    {"name": "Home Depot", "aliases": ["home depot"], "commerce_type": "Retailer"},
+    {"name": "Temu", "aliases": ["temu"], "commerce_type": "Retailer"},
+    {"name": "Shein", "aliases": ["shein"], "commerce_type": "Fashion"},
+    {"name": "Nike", "aliases": ["nike", "jordan brand"], "commerce_type": "Fashion"},
+    {"name": "Adidas", "aliases": ["adidas"], "commerce_type": "Fashion"},
+    {"name": "Prada", "aliases": ["prada"], "commerce_type": "Fashion"},
+    {"name": "Rolex", "aliases": ["rolex"], "commerce_type": "Fashion"},
+    {"name": "Owala", "aliases": ["owala"], "commerce_type": "Product"},
+    {"name": "Stanley", "aliases": ["stanley cup", "stanley tumbler"], "commerce_type": "Product"},
+    {"name": "YETI", "aliases": ["yeti"], "commerce_type": "Product"},
+    {"name": "Dyson", "aliases": ["dyson"], "commerce_type": "Consumer Electronics"},
+    {"name": "Starbucks", "aliases": ["starbucks"], "commerce_type": "Food"},
+    {"name": "McDonald's", "aliases": ["mcdonalds", "mcdonald's"], "commerce_type": "Food"},
+    {"name": "Chipotle", "aliases": ["chipotle"], "commerce_type": "Food"},
+    {"name": "Dunkin", "aliases": ["dunkin"], "commerce_type": "Food"},
+    {"name": "Longhorn Steakhouse", "aliases": ["longhorn steakhouse"], "commerce_type": "Food"},
+    {"name": "Netflix", "aliases": ["netflix"], "commerce_type": "Entertainment IP"},
+    {"name": "Disney", "aliases": ["disney", "disney+", "disney plus", "marvel"], "commerce_type": "Entertainment IP"},
+    {"name": "HBO", "aliases": ["hbo", "hbo max"], "commerce_type": "Entertainment IP"},
+    {"name": "Paramount", "aliases": ["paramount", "paramount+"], "commerce_type": "Entertainment IP"},
+    {"name": "Pokemon", "aliases": ["pokemon"], "commerce_type": "Entertainment IP"},
+    {"name": "Peanuts", "aliases": ["peanuts", "snoopy"], "commerce_type": "Entertainment IP"},
+    {"name": "Ticketmaster", "aliases": ["ticketmaster", "ticket master"], "commerce_type": "Retailer"},
+    {"name": "SeatGeek", "aliases": ["seatgeek"], "commerce_type": "Retailer"},
+    {"name": "Tesla", "aliases": ["tesla"], "commerce_type": "Consumer Electronics"},
+    {"name": "Palantir", "aliases": ["palantir"], "commerce_type": "Brand"},
+    {"name": "Hyundai", "aliases": ["hyundai"], "commerce_type": "Brand"},
+    {"name": "Discord", "aliases": ["discord"], "commerce_type": "Brand"},
+    {"name": "GasBuddy", "aliases": ["gasbuddy", "gas buddy"], "commerce_type": "Brand"}
+  ]
+}

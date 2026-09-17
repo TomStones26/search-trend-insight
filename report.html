@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>分析报告 · DataPulse</title>
+<link rel="stylesheet" href="/assets/theme.css">
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"
+        onerror="var s=document.createElement('script');s.src='https://unpkg.com/echarts@5.5.0/dist/echarts.min.js';document.head.appendChild(s)"></script>
+<style>
+  @media print {
+    .nav,.no-print{display:none !important}
+    body{background:#fff}
+    .card{box-shadow:none;break-inside:avoid}
+    .wrap-narrow{max-width:none;padding:0}
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap-narrow">
+  <div id="root">
+    <div class="empty" style="padding:80px 0">正在生成报告…</div>
+  </div>
+</div>
+
+<script src="/assets/common.js"></script>
+<script>
+mountNav('report');
+
+const CHART_WHERE = { growth: 'quadrant', structure: 'cat', commerce: 'brand' };
+
+(async function main() {
+  let rep, ana;
+  try {
+    rep = await api('/api/report');
+  } catch (e) {
+    $('#root').innerHTML = `<div class="card" style="margin-top:40px">
+      <h2>还没有报告</h2>
+      <p class="sub">报告需要先有一次分析任务。</p>
+      <a class="btn primary" href="/">去主页提一个需求 →</a></div>`;
+    return;
+  }
+  try { ana = await api('/api/analysis'); } catch (e) { ana = null; }
+
+  const m = rep.meta || {};
+  const eng = (m.engine || {});
+  $('#root').innerHTML = `
+    <div class="page-head mt-l">
+      <span class="kicker">Step 4 / 4 · 分析报告</span>
+      <h1>${esc(rep.meta.title)}</h1>
+      <div class="sub">
+        地区 ${esc(m.geo || 'US')} · 时间窗口最近 ${esc(m.window_hours || '—')} 小时 ·
+        快照 ${esc(tsShort(m.snapshot_time))} · 生成于 ${esc(tsShort(m.generated_at))}
+      </div>
+      <div class="row mt" style="gap:7px">
+        <span class="chip">范围：${esc(m.selected)} 条热点</span>
+        <span class="chip ${eng.intent === 'llm' ? 'mint' : 'amber'}">
+          需求理解：${eng.intent === 'llm' ? 'LLM' : '本地规则'}</span>
+        <span class="chip gray">叙述引擎：${eng.narrative === 'llm' ? 'LLM' : '模板'}</span>
+        <button class="btn no-print" id="btnPrint" style="margin-left:auto">打印 / 导出 PDF</button>
+      </div>
+    </div>
+
+    <div class="card mt">
+      <label class="f">本次分析需求</label>
+      <div style="font-size:15px;font-weight:650">${esc(m.raw_input || '（默认需求）')}</div>
+      <div class="muted" style="margin-top:6px">AI 理解为：${esc(m.intent_summary || '')}</div>
+    </div>
+
+    <div class="summary mt-l">
+      <h2 style="margin-top:0">执行摘要</h2>
+      <ol>${(rep.executive_summary || []).map(s => `<li>${esc(s)}</li>`).join('')}</ol>
+    </div>
+
+    ${(rep.sections || []).map(sec => {
+      const chart = CHART_WHERE[sec.id];
+      const bullets = (sec.bullets || []).length
+        ? `<ul style="margin:10px 0 0;padding-left:20px;color:#334155">${
+            sec.bullets.map(b => `<li>${esc(b)}</li>`).join('')}</ul>` : '';
+      const recs = (sec.recommendations || []).length
+        ? `<ul class="recs">${sec.recommendations.map((r, i) =>
+            `<li><b>${i + 1}</b><span>${esc(r)}</span></li>`).join('')}</ul>` : '';
+      return `<div class="sec">
+        <div class="s-title">${esc(sec.title)}</div>
+        ${sec.narrative ? `<p>${esc(sec.narrative)}</p>` : ''}
+        ${bullets}${recs}
+        ${chart ? `<div id="ch_${sec.id}" class="chart mt" style="height:${chart === 'quadrant' ? 440 : 340}px"></div>` : ''}
+        ${(sec.evidence || []).filter(e => e.chart).length
+          ? `<div class="muted no-print" style="margin-top:8px">佐证 ▸ ${
+              sec.evidence.filter(e => e.chart).map(e =>
+                `<a href="/dashboard">图表 ${esc(e.chart)}</a>`).join('　')}</div>` : ''}
+      </div>`;
+    }).join('')}
+
+    <div class="sec">
+      <div class="s-title">数据说明与口径</div>
+      <div class="cav">
+        <b>读这份报告前需要知道</b>
+        <ul>${(rep.caveats || []).map(c => `<li>${esc(c)}</li>`).join('')}</ul>
+      </div>
+      <h3 class="mt-l">术语表</h3>
+      <dl class="gloss">${(rep.glossary || []).map(g =>
+        `<dt>${esc(g.term)}</dt><dd>${esc(g.def)}</dd>`).join('')}</dl>
+    </div>
+
+    <div class="foot">
+      本报告的数值全部由脚本计算得到，LLM 仅参与需求理解与结论文字组织。
+      每条结论均可回溯到看板中的对应图表与热点。
+    </div>`;
+
+  $('#btnPrint').onclick = () => window.print();
+
+  /* ---- 报告内嵌图表 ---- */
+  if (ana) {
+    const qc = makeChart('ch_growth');
+    if (qc) {
+      const vref = ana.quadrant.y_ref, gref = ana.quadrant.x_ref;
+      const style = { '爆发型': '#F43F5E', '成熟型': '#3B82F6', '潜在型': '#F59E0B', '长尾型': '#94A3B8' };
+      const series = (ana.quadrant.series || []).map(s => ({
+        name: s.name + '（' + s.data.length + '）', type: 'scatter',
+        data: s.data.map(d => ({ name: d.name, value: d.value,
+          symbolSize: Math.max(7, Math.min(30, 6 + (d.related || 0) * 0.7)) })),
+        itemStyle: { color: style[s.name] || '#94A3B8', opacity: .85 }
+      }));
+      if (series[0]) series[0].markLine = {
+        silent: true, symbol: 'none',
+        lineStyle: { color: 'rgba(15,23,42,.26)', type: 'dashed', width: 1 },
+        data: [{ xAxis: gref }, { yAxis: vref }]
+      };
+      qc.setOption({
+        grid: { left: 14, right: 30, top: 40, bottom: 34, containLabel: true },
+        legend: { top: 2, textStyle: { fontSize: 11, color: 'var(--ink-2)' }, itemWidth: 9, itemHeight: 9 },
+        tooltip: tipBase({ trigger: 'item', formatter: p =>
+          `<b>${esc(p.data.name)}</b><br>增长率 ${p.value[0]}%<br>搜索量 ${fmtInt(p.value[1])}` }),
+        xAxis: axisBase({ type: 'log', name: '增长率 %', nameLocation: 'middle', nameGap: 24,
+          nameTextStyle: { color: 'var(--ink-3)', fontSize: 11 },
+          axisLabel: { color: AXIS_INK, fontSize: 11, formatter: '{value}%' } }),
+        yAxis: axisBase({ type: 'log', name: '搜索量',
+          nameTextStyle: { color: 'var(--ink-3)', fontSize: 11 },
+          axisLabel: { color: AXIS_INK, fontSize: 11, formatter: v => fmtK(v) } }),
+        series: series
+      });
+    }
+
+    const cc = makeChart('ch_structure');
+    if (cc) cc.setOption({
+      tooltip: tipBase({ trigger: 'item', formatter: p =>
+        `${esc(p.name)}<br>搜索量 ${fmtInt(p.value)}<br>占比 ${p.percent}%` }),
+      legend: { bottom: 0, textStyle: { fontSize: 11, color: 'var(--ink-2)' }, itemWidth: 9, itemHeight: 9 },
+      series: [{
+        type: 'pie', radius: ['42%', '68%'], center: ['50%', '44%'],
+        data: (ana.cat_rows || []).map(r => ({ name: r.label, value: r.volume,
+          itemStyle: { color: r.color } })),
+        label: { fontSize: 11, color: 'var(--ink)', formatter: '{b} {d}%' },
+        itemStyle: { borderColor: '#fff', borderWidth: 2 }
+      }]
+    });
+
+    const bc = makeChart('ch_commerce');
+    if (bc && (ana.brand_heat || []).length) {
+      const rev = ana.brand_heat.slice(0, 10).reverse();
+      bc.setOption({
+        grid: { left: 8, right: 52, top: 10, bottom: 24, containLabel: true },
+        tooltip: tipBase({ trigger: 'item', formatter: p => {
+          const d = rev[p.dataIndex];
+          return `<b>${esc(d.brand)}</b><br>品牌热度 ${d.heat_norm} / 100<br>
+            搜索量 ${fmtInt(d.volume)}<br>关联热点 ${d.count} 条`;
+        } }),
+        xAxis: axisBase({ type: 'value', max: 100 }),
+        yAxis: axisBase({ type: 'category', splitLine: { show: false }, data: rev.map(d => d.brand) }),
+        series: [{
+          type: 'bar', barWidth: '54%',
+          data: rev.map(d => ({ value: d.heat_norm, itemStyle: {
+            borderRadius: [0, 6, 6, 0],
+            color: new echarts.graphic.LinearGradient(0, 0, 1, 0, [
+              { offset: 0, color: '#06B6D4' }, { offset: 1, color: '#6366F1' }]) } })),
+          label: { show: true, position: 'right', fontSize: 11, color: 'var(--ink-2)' }
+        }]
+      });
+    }
+  }
+})();
+</script>
+</body>
+</html>

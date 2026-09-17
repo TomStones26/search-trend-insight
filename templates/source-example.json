@@ -1,0 +1,75 @@
+{
+  "_comment": "数据源 Adapter 配置模板。新增一个数据源 = 新增一份这个文件，不改任何代码。",
+
+  "id": "src_example_api",
+  "name": "示例数据源（公开 API）",
+  "enabled": true,
+
+  "type": "api",
+  "_type_options": "api | html | csv | connector",
+  "_type_note": "html 且为动态渲染页面时，采集器会自动改用浏览器自动化能力；connector 表示走已连接的官方连接器",
+
+  "entry": "https://example.com/api/v1/records",
+  "method": "GET",
+  "headers": {
+    "User-Agent": "DataPulse/0.1 (data research; contact: you@example.com)",
+    "Accept": "application/json"
+  },
+  "params": {
+    "date": "{{DATE}}"
+  },
+
+  "pagination": {
+    "type": "page",
+    "_type_options": "none | page | cursor | offset",
+    "index_param": "page",
+    "size_param": "page_size",
+    "size": 100,
+    "max_pages": 50
+  },
+
+  "extract": {
+    "_comment": "从响应 JSON 里定位数据数组的路径",
+    "dataPath": "data.list",
+    "totalPath": "data.total"
+  },
+
+  "primary_key": ["id"],
+  "updated_at_field": "update_time",
+
+  "field_map": {
+    "id": "id",
+    "stat_date": "date",
+    "channel_name": "channel",
+    "category_lv1": "category",
+    "device_type": "device",
+    "province": "region",
+    "gmv_amount": "gmv",
+    "order_cnt": "orders",
+    "uv": "visits",
+    "update_time": "update_time"
+  },
+
+  "field_types": {
+    "date": "date",
+    "gmv": "number",
+    "orders": "integer",
+    "visits": "integer"
+  },
+
+  "limit": 5000,
+  "rate_limit_ms": 1000,
+
+  "schedule": {
+    "enabled": false,
+    "_comment": "开启后由自动化任务定时触发；建议每周一 09:00",
+    "rruleHint": "FREQ=WEEKLY;BYDAY=MO;BYHOUR=9;BYMINUTE=0"
+  },
+
+  "compliance": {
+    "robotsChecked": true,
+    "publicDataOnly": true,
+    "requiresLogin": false,
+    "notes": "仅抓取公开统计口径数据，不含任何个人身份信息字段"
+  }
+}

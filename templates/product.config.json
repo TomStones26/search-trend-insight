@@ -1,0 +1,107 @@
+{
+  "_comment": "DataPulse 产品配置模板。换领域只改这个文件 + config/sources/*.json。",
+
+  "product": {
+    "name": "DataPulse",
+    "domain": "电商渠道运营数据",
+    "timezone": "Asia/Shanghai",
+    "currency": "CNY",
+    "currencySymbol": "¥",
+    "colorConvention": "up_red_down_green",
+    "_colorConvention_note": "Chinese market convention: price/volume increase = red, decrease = green"
+  },
+
+  "paths": {
+    "runs": "runs/",
+    "latest": "cache/latest",
+    "store": "cache/store/",
+    "archive": "cache/archive/",
+    "index": "cache/index.json"
+  },
+
+  "metrics": [
+    {
+      "key": "gmv",
+      "name": "成交额",
+      "formula": "sum(order_amount) where status='valid'",
+      "unit": "CNY",
+      "aggregation": "sum",
+      "displayFormat": "currency",
+      "isCore": true
+    },
+    {
+      "key": "orders",
+      "name": "订单数",
+      "formula": "count(distinct order_id) where status='valid'",
+      "unit": "count",
+      "aggregation": "sum",
+      "isCore": true
+    },
+    {
+      "key": "visits",
+      "name": "访问量",
+      "formula": "sum(visit_count)",
+      "unit": "count",
+      "aggregation": "sum",
+      "isCore": false
+    },
+    {
+      "key": "conversion_rate",
+      "name": "转化率",
+      "formula": "orders / visits",
+      "unit": "%",
+      "aggregation": "ratio",
+      "displayFormat": "percent",
+      "isCore": true
+    },
+    {
+      "key": "avg_order_value",
+      "name": "客单价",
+      "formula": "gmv / orders",
+      "unit": "CNY",
+      "aggregation": "ratio",
+      "displayFormat": "currency",
+      "isCore": false
+    }
+  ],
+
+  "dimensions": [
+    { "key": "date", "name": "日期", "type": "time", "granularity": ["day", "week", "month"] },
+    { "key": "channel", "name": "渠道", "type": "category" },
+    { "key": "category", "name": "品类", "type": "category" },
+    { "key": "device", "name": "设备", "type": "category" },
+    { "key": "region", "name": "地区", "type": "category" }
+  ],
+
+  "defaultPlan": {
+    "_comment": "用户没有输入任何需求时的默认分析计划。",
+    "output_type": "dashboard",
+    "time_range": { "granularity": "week", "lookback_weeks": 8, "compare": "wow" },
+    "metrics": ["gmv", "conversion_rate", "orders"],
+    "dimensions": ["date", "channel"],
+    "charts": ["line", "bar", "pie"],
+    "top_n": 10
+  },
+
+  "cleaning": {
+    "primaryKey": ["channel", "date"],
+    "updatedAtField": "update_time",
+    "criticalFields": ["channel", "date", "gmv", "orders", "visits"],
+    "outlierMethod": "iqr",
+    "outlierMultiplier": 1.5,
+    "qualityWarningThreshold": 0.8
+  },
+
+  "compliance": {
+    "respectRobotsTxt": true,
+    "minRequestIntervalMs": 1000,
+    "maxRequestsPerSource": 500,
+    "dropPiiFields": true,
+    "publicDataOnly": true,
+    "noLoginBypass": true
+  },
+
+  "sources": [
+    "config/sources/example-source.json"
+  ]
+}

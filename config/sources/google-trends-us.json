@@ -1,0 +1,76 @@
+{
+  "id": "google_trends_us",
+  "name": "Google Trends - Trending Now (US)",
+  "type": "html_embedded_json",
+  "enabled": true,
+
+  "entry": "https://trends.google.com/trending",
+  "method": "GET",
+  "query": {
+    "geo": "US",
+    "hl": "en-US",
+    "hours": 24
+  },
+  "headers": {
+    "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/128.0.0.0 Safari/537.36",
+    "Accept-Language": "en-US,en;q=0.9"
+  },
+
+  "extraction": {
+    "strategy": "af_init_data_callback",
+    "marker": "key: 'ds:0'",
+    "path": "data[1]",
+    "note": "数据内嵌在 HTML 的 AF_initDataCallback 调用中，是 JS 字面量（单引号 / undefined / 尾逗号），需转换为合法 JSON 后再解析"
+  },
+
+  "field_map": {
+    "[0]": "trend",
+    "[2]": "geo",
+    "[3][0]": "started_at",
+    "[4][0]": "raw_ts4",
+    "[6]": "search_volume",
+    "[8]": "growth_rate",
+    "[9]": "related_queries",
+    "[10]": "raw_field10",
+    "[11]": "news_article_refs",
+    "[12]": "trend_duplicate"
+  },
+
+  "primary_key": ["trend_id"],
+  "updated_at_field": "snapshot_time",
+
+  "derived_fields": {
+    "trend_id": "slug(trend)",
+    "is_consumer": "brand != null or category == 'Consumer'",
+    "related_query_count": "len(related_queries)",
+    "first_seen_at": "历史回填（同 geo + 同窗口）",
+    "last_seen_at": "当前 snapshot_time",
+    "duration_hours": "last_seen_at - first_seen_at",
+    "persistence": "同范围内连续出现的快照次数",
+    "status": "本轮在榜=Active；上轮在榜本轮消失=Ended（同 geo + 同窗口）"
+  },
+
+  "known_gaps": [
+    "源站不提供 category，需 LLM 或关键词规则打标",
+    "源站不提供 status，靠历史快照判定",
+    "search_volume 与 growth_rate 均为离散桶值，非精确值",
+    "[4] 字段含义未确认（59/299 条为 null），暂存为 raw_ts4"
+  ],
+
+  "fallback": {
+    "type": "rss",
+    "entry": "https://trends.google.com/trending/rss?geo=US",
+    "note": "降级通道。仅 10 条、字段更少（title / ht:approx_traffic / pubDate / ht:news_item），主通道失效时保证不断流"
+  },
+
+  "compliance": {
+    "publicDataOnly": true,
+    "respectRobotsTxt": true,
+    "minRequestIntervalMs": 1000,
+    "maxRequestsPerDay": 24,
+    "noLoginBypass": true,
+    "note": "仅抓公开趋势列表页，不涉及个人隐私字段；建议每小时最多 1 次"
+  },
+
+  "license_note": "Google Trends 数据的对外使用需遵守 Google 的服务条款，商用前请自行确认授权范围"
+}

@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DataPulse · Google Trends US 实时热点分析</title>
+<link rel="stylesheet" href="/assets/theme.css">
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"
+        onerror="var s=document.createElement('script');s.src='https://unpkg.com/echarts@5.5.0/dist/echarts.min.js';document.head.appendChild(s)"></script>
+</head>
+<body>
+
+<div class="wrap">
+
+  <div class="page-head mt-l">
+    <span class="kicker">DataPulse · 实时搜索情报</span>
+    <h1>美国互联网现在在搜什么</h1>
+    <div class="sub">
+      数据源 Google Trends · Trending Now · 地区 US &nbsp;|&nbsp;
+      自动采集 → 清洗打标 → 多维分析 → 看板与报告，全链路自动化
+    </div>
+  </div>
+
+  <!-- ===== 顶部状态条 ===== -->
+  <div class="card tight mt" id="statusBar">
+    <div class="spread">
+      <div class="row" style="gap:16px">
+        <span class="row" style="gap:7px">
+          <span class="dot-warn" id="srcDot"></span>
+          <span id="srcText" class="sub">正在读取数据集…</span>
+        </span>
+        <span class="muted" id="snapText"></span>
+      </div>
+      <div class="row" style="gap:7px" id="metaChips"></div>
+    </div>
+  </div>
+
+  <!-- ===== 两个主操作 ===== -->
+  <div class="grid g2 mt-l">
+
+    <!-- 更新数据 -->
+    <div class="card">
+      <div class="row" style="gap:9px;margin-bottom:8px">
+        <span style="font-size:19px">⟳</span>
+        <h2 style="margin:0">更新数据</h2>
+        <span class="chip mint">0 token</span>
+      </div>
+      <p class="sub" style="margin:0 0 15px">
+        重新抓取一次 Google Trends US 全量热点，重建快照与常驻看板。
+        单次约 300+ 条热点、耗时 1–3 秒。<b>全程本地完成，不调用模型，不消耗 token</b>。
+      </p>
+      <div class="bar" style="margin-bottom:8px"><i id="collectBar"></i></div>
+      <div class="spread">
+        <span class="muted" id="collectHint">上次更新：—</span>
+        <button class="btn primary" id="btnCollect">立即更新数据</button>
+      </div>
+      <div id="collectSteps" class="mt" style="display:none"></div>
+    </div>
+
+    <!-- 需求输入 -->
+    <div class="card">
+      <div class="row" style="gap:9px;margin-bottom:8px">
+        <span style="font-size:19px">✦</span>
+        <h2 style="margin:0">提出分析需求</h2>
+        <span class="chip amber" id="tokenChip">约 1.2k token</span>
+      </div>
+      <p class="sub" style="margin:0 0 13px">
+        用一句话说明你想看什么。系统会先解析你的需求并把理解结果摊开给你确认，
+        再跑多维分析，最后给出看板和报告。
+        <span id="tokenNote"></span>
+      </p>
+      <textarea id="req" placeholder="例如：看看科技和消费类里增长最快、最值得跟的热点，有没有品牌信号？"></textarea>
+      <div class="quick mt" id="quick"></div>
+      <div class="spread mt">
+        <span class="muted" id="reqHint">留空则使用默认需求：整体概览</span>
+        <button class="btn primary" id="btnAnalyze">开始分析 →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== 自动采集 ===== -->
+  <div class="card mt-l">
+    <div class="spread">
+      <div class="row" style="gap:9px">
+        <span style="font-size:19px">◷</span>
+        <h2 style="margin:0">自动采集</h2>
+        <span class="chip mint">0 token / 轮</span>
+        <span class="dot-warn" id="schDot"></span>
+      </div>
+      <div class="row" style="gap:8px">
+        <select id="schInterval" style="padding:6px 10px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:13px">
+          <option value="60" selected>每小时</option>
+          <option value="120">每 2 小时</option>
+          <option value="180">每 3 小时</option>
+          <option value="30">每 30 分钟</option>
+        </select>
+        <button class="btn" id="btnSchOnce">立即采一次</button>
+        <button class="btn primary" id="btnSchToggle">开启</button>
+      </div>
+    </div>
+    <p class="sub" style="margin:12px 0 0">
+      定时只做「采集 + 清洗 + 打标 + 指标」，<b>不跑需求分析与报告</b>，
+      所以既不消耗 token，也不占用你的分析进度。
+      攒够 3–7 天后，生命周期、每小时新增热点分布、类别趋势曲线这三类分析才有业务意义。
+    </p>
+    <div class="grid g4 mt" id="schStats"></div>
+  </div>
+
+  <!-- ===== 流程说明 ===== -->
+  <div class="card mt-l">
+    <h2>这条流水线怎么跑</h2>
+    <div class="grid g4 mt">
+      <div>
+        <span class="chip">01 采集</span>
+        <h3 class="mt">抓取内嵌数据</h3>
+        <p class="sub" style="margin:0">Google 把全量热点以 <code>AF_initDataCallback</code>
+          内嵌在 HTML 里，一次 GET 即可拿全，不需要浏览器。</p>
+      </div>
+      <div>
+        <span class="chip sky">02 清洗打标</span>
+        <h3 class="mt">词典规则分类</h3>
+        <p class="sub" style="margin:0">12 类加权词典 + 品牌表，本地规则运行，
+          零模型调用、可复现、可迭代。</p>
+      </div>
+      <div>
+        <span class="chip pink">03 分析</span>
+        <h3 class="mt">数值脚本算</h3>
+        <p class="sub" style="margin:0">所有指标由脚本计算，LLM 只负责理解需求与解释结论，
+          每条结论都能追溯到图表。</p>
+      </div>
+      <div>
+        <span class="chip mint">04 输出</span>
+        <h3 class="mt">看板 + 报告</h3>
+        <p class="sub" style="margin:0">常驻看板看全局，专项报告回答你这一次的具体问题。</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="foot">
+    <b>口径声明</b>｜搜索量与增长率均为 Google 提供的离散区间桶值（搜索量 12 档：
+    100 / 200 / 500 / 1K / 2K / 5K / 10K / 20K / 50K / 100K / 200K / 500K），
+    非精确值；类别与品牌由本地词典规则标注，源站不提供这两个字段；
+    生命周期类指标需要多期快照累积。<br>
+    <b>合规</b>｜仅采集公开趋势列表页，不涉及个人隐私字段；请求间隔 ≥ 1 秒，
+    建议每小时最多 1 次。数据对外使用需遵守 Google 服务条款。
+  </div>
+</div>
+
+<script src="/assets/common.js"></script>
+<script>
+mountNav('home');
+
+const QUICKS = [
+  '今天整体热度规模怎么样？增长最快的是哪些？',
+  '科技和消费类里增长最快、最值得跟的热点',
+  '有哪些品牌或商品出现了消费需求信号？',
+  '看看体育和娱乐板块的结构占比',
+  '搜索量最大的一批热点，它们的关联搜索词在搜什么？',
+  '有没有异常爆发的热点值得警惕？',
+  '帮我找出潜在的下一波热点',
+  '对比一下各类别在数量和搜索量上的差异'
+];
+$('#quick').innerHTML = QUICKS.map(q =>
+  `<button data-q="${esc(q)}">${esc(clip(q, 22))}</button>`).join('');
+$$('#quick button').forEach(b => b.onclick = () => { $('#req').value = b.dataset.q; $('#req').focus(); });
+
+/* ---------------- 元信息 ---------------- */
+async function loadMeta() {
+  try {
+    const m = await api('/api/meta');
+    const d = m.dataset || {};
+    const live = d.last_source === 'live';
+    $('#srcDot').className = live ? 'dot-live' : 'dot-warn';
+    $('#srcText').textContent = live
+      ? '数据源连接正常 · 最近一次为实时采集'
+      : (d.last_source === 'cached' ? '最近一次为缓存数据（线上采集未成功）' : '等待首次采集');
+    $('#snapText').textContent = d.snapshot_time
+      ? `快照 ${tsShort(d.snapshot_time)}（${ago(d.snapshot_time)}）` : '';
+    $('#metaChips').innerHTML = [
+      `<span class="chip gray">热点 ${d.count ?? '—'} 条</span>`,
+      `<span class="chip gray">历史 ${d.snapshot_count ?? 0} 期</span>`,
+      `<span class="chip gray">词典 v${esc(d.taxonomy_version || '—')}</span>`,
+      `<span class="chip ${m.engine.llm.available ? 'mint' : 'amber'}">${
+        m.engine.llm.available ? 'LLM 已接入' : 'LLM 未接入（规则模式）'}</span>`
+    ].join(' ');
+    $('#collectHint').textContent = '上次更新：'
+      + (d.snapshot_time ? tsShort(d.snapshot_time) + '（' + ago(d.snapshot_time) + '）' : '—');
+    renderSchedule(m.schedule || {});
+    // token 成本提示：未接 LLM 时既不花钱也不会调模型，说明白避免误解
+    const llmOn = m.engine && m.engine.llm && m.engine.llm.available;
+    if (llmOn) {
+      $('#tokenChip').className = 'chip amber';
+      $('#tokenChip').textContent = '每次约 1.2k token';
+      $('#tokenNote').innerHTML = '每次分析会调用模型 2 次（理解需求 + 写结论），'
+        + '约 1.2k 输入 token，按 DeepSeek 现价约 ¥0.003 一次。';
+    } else {
+      $('#tokenChip').className = 'chip gray';
+      $('#tokenChip').textContent = '未接 LLM · 0 token';
+      $('#tokenNote').innerHTML = '当前未配置模型密钥，需求理解走本地规则解析器，'
+        + '<b>不产生任何 token 消耗</b>；配置后理解能力更强。';
+    }
+  } catch (e) {
+    $('#srcText').textContent = '无法连接本地服务，请确认已运行 python server.py';
+    $('#srcDot').className = 'dot-err';
+  }
+}
+loadMeta();
+
+/* ---------------- 自动采集 ---------------- */
+function renderSchedule(s) {
+  const running = !!s.running;
+  $('#schDot').className = running ? 'dot-live' : 'dot-warn';
+  $('#btnSchToggle').textContent = running ? '停止' : '开启';
+  $('#btnSchToggle').className = 'btn ' + (running ? '' : 'primary');
+  if (s.interval_minutes) $('#schInterval').value = String(s.interval_minutes);
+
+  const lr = s.last_result || {};
+  const cells = [
+    ['状态', running ? '运行中' : '已停止'],
+    ['间隔', s.interval_minutes ? '每 ' + s.interval_minutes + ' 分钟' : '—'],
+    ['已累计期数', (lr.snapshot_count ?? '—') + ' 期'],
+    ['覆盖小时数', (s.hours_covered ?? 0) + ' 小时'],
+    ['下次采集', s.next_run_at ? tsShort(s.next_run_at) : '—'],
+    ['最近一次', s.last_run ? ago(s.last_run) : '—'],
+    ['累计运行', (s.total_runs ?? 0) + ' 次' + (s.total_failures ? '（失败 ' + s.total_failures + '）' : '')],
+    ['token 消耗', '0'],
+  ];
+  $('#schStats').innerHTML = cells.map(([k, v]) =>
+    `<div><div class="muted" style="font-size:12px">${esc(k)}</div>
+      <div style="font-weight:600;font-size:15px;margin-top:2px">${esc(String(v))}</div></div>`).join('');
+}
+
+$('#btnSchToggle').onclick = async () => {
+  const running = $('#schDot').className === 'dot-live';
+  const btn = $('#btnSchToggle');
+  btn.disabled = true;
+  try {
+    if (running) {
+      await post('/api/schedule/stop', {});
+      toast('已请求停止，当前这一轮会跑完', 'ok');
+    } else {
+      const iv = parseInt($('#schInterval').value, 10);
+      await post('/api/schedule/start', { interval_minutes: iv });
+      toast('自动采集已开启（每 ' + iv + ' 分钟），不消耗 token', 'ok');
+    }
+  } catch (e) {
+    toast((e.status === 409 ? '已在运行中' : '操作失败：' + e.message), 'err');
+  }
+  btn.disabled = false;
+  setTimeout(loadMeta, 600);
+};
+
+$('#btnSchOnce').onclick = async () => {
+  const btn = $('#btnSchOnce');
+  btn.disabled = true;
+  toast('正在采集…', 'ok');
+  try {
+    const r = await post('/api/schedule/run-once', {});
+    toast('已采集 ' + r.result.count + ' 条（' + r.result.source + '），累计 '
+      + r.result.snapshot_count + ' 期', 'ok');
+    loadMeta();
+  } catch (e) {
+    toast('采集失败：' + (e.message || '未知错误'), 'err');
+  }
+  btn.disabled = false;
+};
+
+// 调度状态每 30 秒自刷一次，页面上就能看到下一轮时间在走
+setInterval(() => { if (!document.hidden) loadMeta(); }, 30000);
+
+/* ---------------- 更新数据 ---------------- */
+let collectTimer = null;
+$('#btnCollect').onclick = async () => {
+  const btn = $('#btnCollect');
+  btn.disabled = true;
+  $('#collectSteps').style.display = 'block';
+  try {
+    await post('/api/collect', {});
+    toast('已开始采集', 'ok');
+  } catch (e) {
+    btn.disabled = false;
+    toast(e.status === 409 ? '已有任务在运行中' : '启动失败：' + e.message, 'err');
+    return;
+  }
+  $('#collectBar').style.width = '4%';
+  $('#collectHint').textContent = '采集中…';
+  pollStatus(st => {
+    $('#collectBar').style.width = (st.progress || 0) + '%';
+    $('#collectHint').textContent = st.state === 'running'
+      ? `进行中：${(st.steps.find(s => s.state === 'running') || {}).label || '…'}`
+      : (st.state === 'done' ? '采集完成' : '采集失败');
+    $('#collectSteps').innerHTML = st.steps.map(s => {
+      const mark = s.state === 'done' ? '✓' : s.state === 'running' ? '●'
+        : s.state === 'failed' ? '✕' : s.state === 'skipped' ? '–' : '○';
+      const color = s.state === 'done' ? 'var(--mint)' : s.state === 'running' ? 'var(--brand)'
+        : s.state === 'failed' ? 'var(--rose)' : 'var(--ink-3)';
+      return `<div class="row" style="gap:8px;font-size:12.5px;padding:3px 0">
+        <span style="color:${color};width:14px">${mark}</span>
+        <span style="flex:1">${esc(s.label)}</span>
+        <span class="muted">${esc(s.detail || '')}</span></div>`;
+    }).join('');
+    if (st.state !== 'running') {
+      btn.disabled = false;
+      clearTimeout(collectTimer);
+      if (st.state === 'done') toast('数据已更新，看板已重建', 'ok');
+      else toast('采集失败：' + (st.error || '未知错误'), 'err');
+      loadMeta();
+      setTimeout(() => {
+        $('#collectBar').style.width = '0%';
+        $('#collectSteps').style.display = 'none';
+      }, 2600);
+    }
+  }, 700);
+};
+
+/* ---------------- 开始分析 ---------------- */
+$('#btnAnalyze').onclick = async () => {
+  const req = $('#req').value.trim();
+  const btn = $('#btnAnalyze');
+  btn.disabled = true;
+  try {
+    await post('/api/analyze', { requirement: req });
+    toast('已启动分析，正在跳转…', 'ok');
+    setTimeout(() => { location.href = '/analysis'; }, 420);
+  } catch (e) {
+    btn.disabled = false;
+    toast(e.status === 409 ? '已有任务在运行中，请稍候'
+      : (e.status === 400 ? '请输入需求内容' : '启动失败：' + e.message), 'err');
+  }
+};
+$('#req').addEventListener('keydown', e => {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') $('#btnAnalyze').click();
+});
+</script>
+</body>
+</html>
